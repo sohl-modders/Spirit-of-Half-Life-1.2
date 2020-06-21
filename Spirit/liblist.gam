@@ -1,0 +1,29 @@
+//This is liblist.gam file for the Spirit Mod Skeleton.
+//To customize it for your own level(s), change the text below.
+
+//Write the name of your level here. This will be the main text that
+// gets shown in the Custom Game menu.
+game "Spirit Mod Skeleton"
+
+//Put your website here, if you have one. (If not, delete this line.)
+url_info "http://spirit.valve-erc.com"
+
+//What version of your mod/level this is.
+version "1.0"
+
+//The total size of your zip file.
+size "0"
+
+//Put the name of your game's first bsp file here.
+// (leave off the .bsp at the end)
+startmap "c0a0"
+
+//If you have a replacement for the hazard course, put its name here.
+trainingmap "t0a0"
+
+// You probably want to leave these settings alone.
+hlversion "1108"
+type "Single player"
+mpentity "info_player_deathmatch"
+cldll "1"
+gamedll "dlls/spirit.dll"
