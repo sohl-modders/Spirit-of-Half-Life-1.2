@@ -16,6 +16,7 @@
 #include "entity_state.h"
 #include "cl_entity.h"
 #include "triangleapi.h"
+#include "particlemgr.h"
 
 #define DLLEXPORT __declspec( dllexport )
 
@@ -233,6 +234,8 @@ HUD_DrawTransparentTriangles
 Render any triangles with transparent rendermode needs here
 =================
 */
+extern ParticleSystemManager* g_pParticleSystems; // LRC
+
 void DLLEXPORT HUD_DrawTransparentTriangles( void )
 {
 	BlackFog();
@@ -240,6 +243,14 @@ void DLLEXPORT HUD_DrawTransparentTriangles( void )
    	//22/03/03 LRC: shiny surfaces
 	if (gHUD.m_pShinySurface)
 		gHUD.m_pShinySurface->DrawAll(v_origin);
+
+	// LRC: find out the time elapsed since the last redraw
+	static float fOldTime, fTime;
+	fOldTime = fTime;
+	fTime = gEngfuncs.GetClientTime();
+
+	// LRC: draw and update particle systems
+	g_pParticleSystems->UpdateSystems(fTime - fOldTime);
 
 #if defined( TEST_IT )
 //	Draw_Triangles();

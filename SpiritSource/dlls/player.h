@@ -338,6 +338,7 @@ public:
 
 
 extern int	gmsgHudText;
+extern int	gmsgParticle; // LRC
 extern BOOL gInitHUD;
 
 #endif // PLAYER_H

@@ -327,6 +327,18 @@ SOURCE=.\parsemsg.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\particlemgr.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\particlemsg.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\particlesys.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\pm_shared\pm_debug.c
 # End Source File
 # Begin Source File
@@ -528,6 +540,14 @@ SOURCE=.\overview.h
 # Begin Source File
 
 SOURCE=.\parsemsg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\particlemgr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\particlesys.h
 # End Source File
 # Begin Source File
 
