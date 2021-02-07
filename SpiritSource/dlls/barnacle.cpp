@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -127,7 +127,7 @@ void CBarnacle :: Spawn()
 
 	SetActivity ( ACT_IDLE );
 
-	SetThink(&CBarnacle :: BarnacleThink );
+	SetThink ( &CBarnacle::BarnacleThink );
 	SetNextThink( 0.5 );
 
 	UTIL_SetOrigin ( this, pev->origin );
@@ -189,8 +189,7 @@ void CBarnacle :: BarnacleThink ( void )
 
 			if ( fabs( pev->origin.z - ( vecNewEnemyOrigin.z + m_hEnemy->pev->view_ofs.z - 8 ) ) < BARNACLE_BODY_HEIGHT )
 			{
-	// prey has just been lifted into position ( if the victim origin + eye height + 8 is higher
-	// than the bottom of the barnacle, it is assumed that the head is within barnacle's body )
+		// prey has just been lifted into position ( if the victim origin + eye height + 8 is higher than the bottom of the barnacle, it is assumed that the head is within barnacle's body )
 				m_fLiftingPrey = FALSE;
 
 				EMIT_SOUND( ENT(pev), CHAN_WEAPON, "barnacle/bcl_bite3.wav", 1, ATTN_NORM );	
@@ -353,7 +352,7 @@ void CBarnacle :: Killed( entvars_t *pevAttacker, int iGib )
 	StudioFrameAdvance( 0.1 );
 
 	SetNextThink( 0.1 );
-	SetThink(&CBarnacle :: WaitTillDead );
+	SetThink ( &CBarnacle::WaitTillDead );
 }
 
 //=========================================================

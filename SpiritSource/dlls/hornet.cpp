@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -93,8 +93,8 @@ void CHornet :: Spawn( void )
 	SET_MODEL(ENT( pev ), "models/hornet.mdl");
 	UTIL_SetSize( pev, Vector( -4, -4, -4 ), Vector( 4, 4, 4 ) );
 
-	SetTouch(&CHornet :: DieTouch );
-	SetThink(&CHornet :: StartTrack );
+	SetTouch( &CHornet::DieTouch );
+	SetThink( &CHornet::StartTrack );
 
 	edict_t *pSoundEnt = pev->owner;
 	if ( !pSoundEnt )
@@ -169,8 +169,8 @@ void CHornet :: StartTrack ( void )
 {
 	IgniteTrail();
 
-	SetTouch(&CHornet :: TrackTouch );
-	SetThink(&CHornet :: TrackTarget );
+	SetTouch( &CHornet::TrackTouch );
+	SetThink( &CHornet::TrackTarget );
 
 	SetNextThink( 0.1 );
 }
@@ -182,9 +182,9 @@ void CHornet :: StartDart ( void )
 {
 	IgniteTrail();
 
-	SetTouch(&CHornet :: DartTouch );
+	SetTouch( &CHornet::DartTouch );
 
-	SetThink(&CHornet :: SUB_Remove );
+	SetThink( &CHornet::SUB_Remove );
 	SetNextThink( 4 );
 }
 
@@ -257,7 +257,7 @@ void CHornet :: TrackTarget ( void )
 	if (gpGlobals->time > m_flStopAttack)
 	{
 		SetTouch( NULL );
-		SetThink(&CHornet :: SUB_Remove );
+		SetThink( &CHornet::SUB_Remove );
 		SetNextThink( 0.1 );
 		return;
 	}
@@ -397,7 +397,7 @@ void CHornet::DartTouch( CBaseEntity *pOther )
 
 void CHornet::DieTouch ( CBaseEntity *pOther )
 {
-	if ( pOther && pOther->pev->takedamage )
+	if (pOther && pOther->pev->takedamage && pev->owner)
 	{// do the damage
 
 		switch (RANDOM_LONG(0,2))
@@ -413,7 +413,7 @@ void CHornet::DieTouch ( CBaseEntity *pOther )
 	pev->modelindex = 0;// so will disappear for the 0.1 secs we wait until NEXTTHINK gets rid
 	pev->solid = SOLID_NOT;
 
-	SetThink(&CHornet:: SUB_Remove );
+	SetThink ( &CHornet::SUB_Remove );
 	SetNextThink( 1 );// stick around long enough for the sound to finish!
 }
 

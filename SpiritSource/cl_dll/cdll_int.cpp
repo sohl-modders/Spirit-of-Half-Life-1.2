@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1999, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -21,53 +21,46 @@
 #include "hud.h"
 #include "cl_util.h"
 #include "netadr.h"
-#include "vgui_schememanager.h"
+#undef INTERFACE_H
+#include "../public/interface.h"
+//#include "vgui_schememanager.h"
 
-extern "C"
-{
 #include "pm_shared.h"
-}
 
 #include <string.h>
 #include "hud_servers.h"
 #include "vgui_int.h"
 #include "interface.h"
 
-#define DLLEXPORT __declspec( dllexport )
+#include "Platform.h"
+#include "Exports.h"
 
+#include "tri.h"
+#include "vgui_TeamFortressViewport.h"
+#include "../public/interface.h"
 
 cl_enginefunc_t gEngfuncs;
 CHud gHUD;
 TeamFortressViewport *gViewPort = NULL;
 
+
+#include "particleman.h"
+CSysModule *g_hParticleManModule = NULL;
+IParticleMan *g_pParticleMan = NULL;
+
+#include "gameui.h"
+CSysModule *g_hGameUIModule = nullptr;
+IGameUI *g_pGameUI = nullptr;
+
+void CL_LoadParticleMan( void );
+void CL_UnloadParticleMan( void );
+
+void CL_LoadGameUI();
+void CL_UnloadGameUI();
+
 void InitInput (void);
 void EV_HookEvents( void );
 void IN_Commands( void );
-
-/*
-========================== 
-    Initialize
-
-Called when the DLL is first loaded.
-==========================
-*/
-extern "C" 
-{
-int		DLLEXPORT Initialize( cl_enginefunc_t *pEnginefuncs, int iVersion );
-int		DLLEXPORT HUD_VidInit( void );
-void	DLLEXPORT HUD_Init( void );
-int		DLLEXPORT HUD_Redraw( float flTime, int intermission );
-int		DLLEXPORT HUD_UpdateClientData( client_data_t *cdata, float flTime );
-void	DLLEXPORT HUD_Reset ( void );
-void	DLLEXPORT HUD_PlayerMove( struct playermove_s *ppmove, int server );
-void	DLLEXPORT HUD_PlayerMoveInit( struct playermove_s *ppmove );
-char	DLLEXPORT HUD_PlayerMoveTexture( char *name );
-int		DLLEXPORT HUD_ConnectionlessPacket( const struct netadr_s *net_from, const char *args, char *response_buffer, int *response_buffer_size );
-int		DLLEXPORT HUD_GetHullBounds( int hullnumber, float *mins, float *maxs );
-void	DLLEXPORT HUD_Frame( double time );
-void	DLLEXPORT HUD_VoiceStatus(int entindex, qboolean bTalking);
-void	DLLEXPORT HUD_DirectorMessage( int iSize, void *pbuf );
-}
 
 /*
 ================================
@@ -78,23 +71,28 @@ HUD_GetHullBounds
 */
 int DLLEXPORT HUD_GetHullBounds( int hullnumber, float *mins, float *maxs )
 {
+//	RecClGetHullBounds(hullnumber, mins, maxs);
+
 	int iret = 0;
+
+	Vector& vecMins = *reinterpret_cast<Vector*>(mins);
+	Vector& vecMaxs = *reinterpret_cast<Vector*>(maxs);
 
 	switch ( hullnumber )
 	{
 	case 0:				// Normal player
-		mins = Vector(-16, -16, -36);
-		maxs = Vector(16, 16, 36);
+		vecMins = Vector(-16, -16, -36);
+		vecMaxs = Vector(16, 16, 36);
 		iret = 1;
 		break;
 	case 1:				// Crouched player
-		mins = Vector(-16, -16, -18 );
-		maxs = Vector(16, 16, 18 );
+		vecMins = Vector(-16, -16, -18);
+		vecMaxs = Vector(16, 16, 18);
 		iret = 1;
 		break;
 	case 2:				// Point based hull
-		mins = Vector( 0, 0, 0 );
-		maxs = Vector( 0, 0, 0 );
+		vecMins = Vector(0, 0, 0);
+		vecMaxs = Vector(0, 0, 0);
 		iret = 1;
 		break;
 	}
@@ -112,6 +110,8 @@ HUD_ConnectionlessPacket
 */
 int	DLLEXPORT HUD_ConnectionlessPacket( const struct netadr_s *net_from, const char *args, char *response_buffer, int *response_buffer_size )
 {
+//	RecClConnectionlessPacket(net_from, args, response_buffer, response_buffer_size);
+
 	// Parse stuff from args
 	int max_buffer_size = *response_buffer_size;
 
@@ -126,16 +126,22 @@ int	DLLEXPORT HUD_ConnectionlessPacket( const struct netadr_s *net_from, const c
 
 void DLLEXPORT HUD_PlayerMoveInit( struct playermove_s *ppmove )
 {
+//	RecClClientMoveInit(ppmove);
+
 	PM_Init( ppmove );
 }
 
 char DLLEXPORT HUD_PlayerMoveTexture( char *name )
 {
+//	RecClClientTextureType(name);
+
 	return PM_FindTextureType( name );
 }
 
 void DLLEXPORT HUD_PlayerMove( struct playermove_s *ppmove, int server )
 {
+//	RecClClientMove(ppmove, server);
+
 	PM_Move( ppmove, server );
 }
 
@@ -143,13 +149,18 @@ int DLLEXPORT Initialize( cl_enginefunc_t *pEnginefuncs, int iVersion )
 {
 	gEngfuncs = *pEnginefuncs;
 
+//	RecClInitialize(pEnginefuncs, iVersion);
+
 	if (iVersion != CLDLL_INTERFACE_VERSION)
 		return 0;
 
 	memcpy(&gEngfuncs, pEnginefuncs, sizeof(cl_enginefunc_t));
 
 	EV_HookEvents();
+	CL_LoadParticleMan();
+	CL_LoadGameUI();
 
+	// get tracker interface, if any
 	return 1;
 }
 
@@ -166,6 +177,7 @@ so the HUD can reinitialize itself.
 
 int DLLEXPORT HUD_VidInit( void )
 {
+//	RecClHudVidInit();
 	gHUD.VidInit();
 
 	VGui_Startup();
@@ -185,6 +197,7 @@ the hud variables.
 
 void DLLEXPORT HUD_Init( void )
 {
+//	RecClHudInit();
 	InitInput();
 	gHUD.Init();
 	Scheme_Init();
@@ -202,6 +215,8 @@ redraw the HUD.
 
 int DLLEXPORT HUD_Redraw( float time, int intermission )
 {
+//	RecClHudRedraw(time, intermission);
+
 	gHUD.Redraw( time, intermission );
 
 	return 1;
@@ -223,6 +238,8 @@ returns 1 if anything has been changed, 0 otherwise.
 
 int DLLEXPORT HUD_UpdateClientData(client_data_t *pcldata, float flTime )
 {
+//	RecClHudUpdateClientData(pcldata, flTime);
+
 	IN_Commands();
 
 	return gHUD.UpdateClientData(pcldata, flTime );
@@ -238,6 +255,8 @@ Called at start and end of demos to restore to "non"HUD state.
 
 void DLLEXPORT HUD_Reset( void )
 {
+//	RecClHudReset();
+
 	gHUD.VidInit();
 }
 
@@ -251,6 +270,8 @@ Called by engine every frame that client .dll is loaded
 
 void DLLEXPORT HUD_Frame( double time )
 {
+//	RecClHudFrame(time);
+
 	ServersThink( time );
 
 	GetClientVoiceMgr()->Frame(time);
@@ -267,12 +288,14 @@ Called when a player starts or stops talking.
 
 void DLLEXPORT HUD_VoiceStatus(int entindex, qboolean bTalking)
 {
+////	RecClVoiceStatus(entindex, bTalking);
+
 	GetClientVoiceMgr()->UpdateSpeakerStatus(entindex, bTalking);
 }
 
 /*
 ==========================
-HUD_DirectorEvent
+HUD_DirectorMessage
 
 Called when a director event message was received
 ==========================
@@ -280,7 +303,178 @@ Called when a director event message was received
 
 void DLLEXPORT HUD_DirectorMessage( int iSize, void *pbuf )
 {
-	 gHUD.m_Spectator.DirectorMessage( iSize, pbuf );
+//	RecClDirectorMessage(iSize, pbuf);
+
+	gHUD.m_Spectator.DirectorMessage( iSize, pbuf );
 }
 
+void CL_UnloadParticleMan( void )
+{
+	Sys_UnloadModule( g_hParticleManModule );
 
+	g_pParticleMan = NULL;
+	g_hParticleManModule = NULL;
+}
+
+void CL_LoadParticleMan( void )
+{
+	char szPDir[512];
+
+	if ( gEngfuncs.COM_ExpandFilename( PARTICLEMAN_DLLNAME, szPDir, sizeof( szPDir ) ) == FALSE )
+	{
+		g_pParticleMan = NULL;
+		g_hParticleManModule = NULL;
+		return;
+	}
+
+	g_hParticleManModule = Sys_LoadModule( szPDir );
+	CreateInterfaceFn particleManFactory = Sys_GetFactory( g_hParticleManModule );
+
+	if ( particleManFactory == NULL )
+	{
+		g_pParticleMan = NULL;
+		g_hParticleManModule = NULL;
+		return;
+	}
+
+	g_pParticleMan = (IParticleMan *)particleManFactory( PARTICLEMAN_INTERFACE, NULL);
+
+	if ( g_pParticleMan )
+	{
+		 g_pParticleMan->SetUp( &gEngfuncs );
+
+		 // Add custom particle classes here BEFORE calling anything else or you will die.
+		 g_pParticleMan->AddCustomParticleClassSize ( sizeof ( CBaseParticle ) );
+	}
+}
+
+void CL_UnloadGameUI()
+{
+	Sys_UnloadModule( g_hGameUIModule );
+	g_pGameUI = nullptr;
+	g_hGameUIModule = nullptr;
+}
+
+void CL_LoadGameUI()
+{
+	char szDir[512];
+	if ( gEngfuncs.COM_ExpandFilename( GAMEUI_DLLNAME, szDir, sizeof( szDir ) ) == FALSE )
+	{
+		g_pGameUI = nullptr;
+		g_hGameUIModule = nullptr;
+		return;
+	}
+
+	g_hGameUIModule = Sys_LoadModule( szDir );
+	CreateInterfaceFn gameUIFactory = Sys_GetFactory( g_hGameUIModule );
+	if ( !gameUIFactory )
+	{
+		g_pGameUI = nullptr;
+		g_hGameUIModule = nullptr;
+		return;
+	}
+
+	g_pGameUI = static_cast<IGameUI *>( gameUIFactory( GAMEUI_INTERFACE, nullptr ) );
+}
+
+cldll_func_dst_t *g_pcldstAddrs;
+
+extern "C" void DLLEXPORT F(void *pv)
+{
+	cldll_func_t *pcldll_func = (cldll_func_t *)pv;
+
+	// Hack!
+	g_pcldstAddrs = ((cldll_func_dst_t *)pcldll_func->pHudVidInitFunc);
+
+	cldll_func_t cldll_func = 
+	{
+	Initialize,
+	HUD_Init,
+	HUD_VidInit,
+	HUD_Redraw,
+	HUD_UpdateClientData,
+	HUD_Reset,
+	HUD_PlayerMove,
+	HUD_PlayerMoveInit,
+	HUD_PlayerMoveTexture,
+	IN_ActivateMouse,
+	IN_DeactivateMouse,
+	IN_MouseEvent,
+	IN_ClearStates,
+	IN_Accumulate,
+	CL_CreateMove,
+	CL_IsThirdPerson,
+	CL_CameraOffset,
+	KB_Find,
+	CAM_Think,
+	V_CalcRefdef,
+	HUD_AddEntity,
+	HUD_CreateEntities,
+	HUD_DrawNormalTriangles,
+	HUD_DrawTransparentTriangles,
+	HUD_StudioEvent,
+	HUD_PostRunCmd,
+	HUD_Shutdown,
+	HUD_TxferLocalOverrides,
+	HUD_ProcessPlayerState,
+	HUD_TxferPredictionData,
+	Demo_ReadBuffer,
+	HUD_ConnectionlessPacket,
+	HUD_GetHullBounds,
+	HUD_Frame,
+	HUD_Key_Event,
+	HUD_TempEntUpdate,
+	HUD_GetUserEntity,
+	HUD_VoiceStatus,
+	HUD_DirectorMessage,
+	HUD_GetStudioModelInterface,
+	HUD_ChatInputPosition,
+	};
+
+	*pcldll_func = cldll_func;
+}
+
+#include "cl_dll/IGameClientExports.h"
+
+//-----------------------------------------------------------------------------
+// Purpose: Exports functions that are used by the gameUI for UI dialogs
+//-----------------------------------------------------------------------------
+class CClientExports : public IGameClientExports
+{
+public:
+	// returns the name of the server the user is connected to, if any
+	virtual const char *GetServerHostName()
+	{
+		/*if (gViewPortInterface)
+		{
+			return gViewPortInterface->GetServerName();
+		}*/
+		return "";
+	}
+
+	// ingame voice manipulation
+	virtual bool IsPlayerGameVoiceMuted(int playerIndex)
+	{
+		if (GetClientVoiceMgr())
+			return GetClientVoiceMgr()->IsPlayerBlocked(playerIndex);
+		return false;
+	}
+
+	virtual void MutePlayerGameVoice(int playerIndex)
+	{
+		if (GetClientVoiceMgr())
+		{
+			GetClientVoiceMgr()->SetPlayerBlockedState(playerIndex, true);
+		}
+	}
+
+	virtual void UnmutePlayerGameVoice(int playerIndex)
+	{
+		if (GetClientVoiceMgr())
+		{
+			GetClientVoiceMgr()->SetPlayerBlockedState(playerIndex, false);
+		}
+	}
+};
+
+EXPOSE_SINGLE_INTERFACE(CClientExports, IGameClientExports, GAMECLIENTEXPORTS_INTERFACE_VERSION);

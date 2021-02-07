@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -105,7 +105,7 @@ void CFuncMortarField :: Spawn( void )
 	SET_MODEL(ENT(pev), STRING(pev->model));    // set size and link into world
 	pev->movetype = MOVETYPE_NONE;
 	SetBits( pev->effects, EF_NODRAW );
-	SetUse(&CFuncMortarField :: FieldUse );
+	SetUse( & CFuncMortarField::FieldUse );
 	Precache();
 }
 
@@ -209,7 +209,7 @@ void CMortar::Spawn( )
 
 	pev->dmg		= 200;
 
-	SetThink(&CMortar:: MortarExplode );
+	SetThink( &CMortar::MortarExplode );
 	DontThink();
 
 	Precache( );
@@ -300,7 +300,7 @@ void CMortar::MortarExplode( void )
 	}
 	*/
 
-	SetThink(&CMortar:: SUB_Remove );
+	SetThink( &CMortar::SUB_Remove );
 	SetNextThink( 0.1 );
 #endif
 

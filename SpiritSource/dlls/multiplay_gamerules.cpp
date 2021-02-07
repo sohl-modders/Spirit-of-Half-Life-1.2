@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -15,8 +15,6 @@
 //
 // teamplay_gamerules.cpp
 //
-#include <ctype.h>
-
 #include	"extdll.h"
 #include	"util.h"
 #include	"cbase.h"
@@ -29,6 +27,10 @@
 #include	"items.h"
 #include	"voice_gamemgr.h"
 #include	"hltv.h"
+
+#if !defined ( _WIN32 )
+#include <ctype.h>
+#endif
 
 extern DLL_GLOBAL CGameRules	*g_pGameRules;
 extern DLL_GLOBAL BOOL	g_fGameOver;
@@ -88,17 +90,7 @@ CHalfLifeMultiplay :: CHalfLifeMultiplay()
 	// share a single config file. (sjb)
 	if ( IS_DEDICATED_SERVER() )
 	{
-		// dedicated server
-		char *servercfgfile = (char *)CVAR_GET_STRING( "servercfgfile" );
-
-		if ( servercfgfile && servercfgfile[0] )
-		{
-			char szCommand[256];
-			
-			ALERT( at_debug, "Executing dedicated server config file\n" );
-			sprintf( szCommand, "exec %s\n", servercfgfile );
-			SERVER_COMMAND( szCommand );
-		}
+		// this code has been moved into engine, to only run server.cfg once
 	}
 	else
 	{
@@ -109,7 +101,7 @@ CHalfLifeMultiplay :: CHalfLifeMultiplay()
 		{
 			char szCommand[256];
 			
-			ALERT( at_debug, "Executing listen server config file\n" );
+			ALERT( at_console, "Executing listen server config file\n" );
 			sprintf( szCommand, "exec %s\n", lservercfgfile );
 			SERVER_COMMAND( szCommand );
 		}
@@ -122,6 +114,11 @@ BOOL CHalfLifeMultiplay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return TRUE;
 
 	return CGameRules::ClientCommand(pPlayer, pcmd);
+}
+
+void CHalfLifeMultiplay::ClientUserInfoChanged(CBasePlayer* pPlayer, char* infobuffer)
+{
+	pPlayer->SetPrefsFromUserinfo(infobuffer);
 }
 
 //=========================================================
@@ -204,7 +201,7 @@ void CHalfLifeMultiplay :: Think ( void )
 		if ( time < 1 )
 			CVAR_SET_STRING( "mp_chattime", "1" );
 		else if ( time > MAX_INTERMISSION_TIME )
-			CVAR_SET_STRING( "mp_chattime", UTIL_dtos1( MAX_INTERMISSION_TIME ) );
+			CVAR_SET_STRING( "mp_chattime", UTIL_dtos( MAX_INTERMISSION_TIME ) );
 
 		m_flIntermissionEndTime = g_flIntermissionStartTime + mp_chattime.value;
 
@@ -317,6 +314,18 @@ BOOL CHalfLifeMultiplay::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerI
 	if ( !pPlayer->m_pActiveItem->CanHolster() )
 	{
 		// can't put away the active item.
+		return FALSE;
+	}
+
+	//Never switch
+	if (pPlayer->m_iAutoWepSwitch == 0)
+	{
+		return FALSE;
+	}
+
+	//Only switch if not attacking
+	if (pPlayer->m_iAutoWepSwitch == 2 && (pPlayer->m_afButtonLast & (IN_ATTACK | IN_ATTACK2)))
+	{
 		return FALSE;
 	}
 
@@ -561,6 +570,10 @@ void CHalfLifeMultiplay :: PlayerSpawn( CBasePlayer *pPlayer )
 	BOOL		addDefault;
 	CBaseEntity	*pWeaponEntity = NULL;
 
+	//Ensure the player switches to the Glock on spawn regardless of setting
+	const int originalAutoWepSwitch = pPlayer->m_iAutoWepSwitch;
+	pPlayer->m_iAutoWepSwitch = 1;
+
 	pPlayer->pev->weapons |= (1<<WEAPON_SUIT);
 	
 	addDefault = TRUE;
@@ -577,6 +590,8 @@ void CHalfLifeMultiplay :: PlayerSpawn( CBasePlayer *pPlayer )
 		pPlayer->GiveNamedItem( "weapon_9mmhandgun" );
 		pPlayer->GiveAmmo( 68, "9mm", _9MM_MAX_CARRY );// 4 full reloads
 	}
+
+	pPlayer->m_iAutoWepSwitch = originalAutoWepSwitch;
 }
 
 //=========================================================
@@ -689,8 +704,8 @@ void CHalfLifeMultiplay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, 
 	int killer_index = 0;
 	
 	// Hack to fix name change
-	char *tau = "tau_cannon";
-	char *gluon = "gluon gun";
+	const char *tau = "tau_cannon";
+	const char *gluon = "gluon gun";
 
 	if ( pKiller->flags & FL_CLIENT )
 	{
@@ -1154,7 +1169,7 @@ void CHalfLifeMultiplay :: GoToIntermission( void )
 	if ( time < 1 )
 		CVAR_SET_STRING( "mp_chattime", "1" );
 	else if ( time > MAX_INTERMISSION_TIME )
-		CVAR_SET_STRING( "mp_chattime", UTIL_dtos1( MAX_INTERMISSION_TIME ) );
+		CVAR_SET_STRING( "mp_chattime", UTIL_dtos( MAX_INTERMISSION_TIME ) );
 
 	m_flIntermissionEndTime = gpGlobals->time + ( (int)mp_chattime.value );
 	g_flIntermissionStartTime = gpGlobals->time;
@@ -1376,15 +1391,15 @@ int ReloadMapCycleFile( char *filename, mapcycle_t *cycle )
 					if ( s && s[0] )
 					{
 						item->minplayers = atoi( s );
-						item->minplayers = max( item->minplayers, 0 );
-						item->minplayers = min( item->minplayers, gpGlobals->maxClients );
+						item->minplayers = V_max( item->minplayers, 0 );
+						item->minplayers = V_min( item->minplayers, gpGlobals->maxClients );
 					}
 					s = g_engfuncs.pfnInfoKeyValue( szBuffer, "maxplayers" );
 					if ( s && s[0] )
 					{
 						item->maxplayers = atoi( s );
-						item->maxplayers = max( item->maxplayers, 0 );
-						item->maxplayers = min( item->maxplayers, gpGlobals->maxClients );
+						item->maxplayers = V_max( item->maxplayers, 0 );
+						item->maxplayers = V_min( item->maxplayers, gpGlobals->maxClients );
 					}
 
 					// Remove keys

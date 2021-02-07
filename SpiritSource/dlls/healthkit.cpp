@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -252,7 +252,7 @@ void CWallHealth::Recharge(void)
 	//LRC
 	if (m_iStyle >= 32) LIGHT_STYLE(m_iStyle, "a");
 	else if (m_iStyle <= -32) LIGHT_STYLE(-m_iStyle, "z");
-	SetThink(&CWallHealth:: SUB_DoNothing );
+	SetThink( &CWallHealth::SUB_DoNothing );
 }
 
 void CWallHealth::Off(void)
@@ -269,7 +269,7 @@ void CWallHealth::Off(void)
 		SetThink(&CWallHealth::Recharge);
 	}
 	else
-		SetThink(&CWallHealth:: SUB_DoNothing );
+		SetThink( &CWallHealth::SUB_DoNothing );
 }
 
 STATE CWallHealth::GetState( void )

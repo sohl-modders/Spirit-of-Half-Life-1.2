@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -107,6 +107,8 @@ public:
 	CBeam *m_pBeam;
 
 	float m_flNextAlert;
+
+	float m_flLastPitchTime;
 
 	static const char *pIdleSounds[];
 	static const char *pAlertSounds[];
@@ -498,8 +500,8 @@ void CIchthyosaur :: Spawn()
 
 	MonsterInit();
 
-	SetTouch(&CIchthyosaur :: BiteTouch );
-	SetUse(&CIchthyosaur :: CombatUse );
+	SetTouch( &CIchthyosaur::BiteTouch );
+	SetUse( &CIchthyosaur::CombatUse );
 
 	m_idealDist = 384;
 	m_flMinSpeed = 80;
@@ -815,7 +817,22 @@ float CIchthyosaur :: ChangePitch( int speed )
 			else if (diff > 20)
 				target = -45;
 		}
-		pev->angles.x = UTIL_Approach(target, pev->angles.x, 220.0 * 0.1 );
+
+		if (m_flLastPitchTime == 0)
+		{
+			m_flLastPitchTime = gpGlobals->time - gpGlobals->frametime;
+		}
+
+		float delta = gpGlobals->time - m_flLastPitchTime;
+
+		m_flLastPitchTime = gpGlobals->time;
+
+		if (delta > 0.25)
+		{
+			delta = 0.25;
+		}
+
+		pev->angles.x = UTIL_Approach(target, pev->angles.x, 220.0 * delta);
 	}
 	return 0;
 }
@@ -834,7 +851,22 @@ float CIchthyosaur::ChangeYaw( int speed )
 			else if ( diff > 20 )
 				target = -20;
 		}
-		pev->angles.z = UTIL_Approach( target, pev->angles.z, 220.0 * 0.1 );
+		
+		if (m_flLastZYawTime == 0)
+		{
+			m_flLastZYawTime = gpGlobals->time - gpGlobals->frametime;
+		}
+
+		float delta = gpGlobals->time - m_flLastZYawTime;
+
+		m_flLastZYawTime = gpGlobals->time;
+
+		if (delta > 0.25)
+		{
+			delta = 0.25;
+		}
+
+		pev->angles.z = UTIL_Approach(target, pev->angles.z, 220.0 * delta);
 	}
 	return CFlyingMonster::ChangeYaw( speed );
 }

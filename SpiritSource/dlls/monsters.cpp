@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1999, 2000 Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -61,7 +61,7 @@ TYPEDESCRIPTION	CBaseMonster::m_SaveData[] =
 
 	DEFINE_FIELD( CBaseMonster, m_iClass, FIELD_INTEGER ),
 	DEFINE_FIELD( CBaseMonster, m_iPlayerReact, FIELD_INTEGER ),
-	
+
 	DEFINE_FIELD( CBaseMonster, m_flFieldOfView, FIELD_FLOAT ),
 	DEFINE_FIELD( CBaseMonster, m_flWaitFinished, FIELD_TIME ),
 	DEFINE_FIELD( CBaseMonster, m_flMoveWaitFinished, FIELD_TIME ),
@@ -119,10 +119,7 @@ int CBaseMonster::Save( CSave &save )
 {
 	if ( !CBaseToggle::Save(save) )
 		return 0;
-	if ( pev->targetname )
-		return save.WriteFields( STRING(pev->targetname), "CBaseMonster", this, m_SaveData, ARRAYSIZE(m_SaveData) );
-	else
-		return save.WriteFields( STRING(pev->classname), "CBaseMonster", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+	return save.WriteFields( "CBaseMonster", this, m_SaveData, ARRAYSIZE(m_SaveData) );
 }
 
 int CBaseMonster::Restore( CRestore &restore )
@@ -333,7 +330,6 @@ void CBaseMonster :: Look ( int iDistance )
 		{
 			pSightEnt = pList[i];
 			// !!!temporarily only considering other monsters and clients, don't see prisoners
-
 			if ( pSightEnt != this												&& 
 				 !FBitSet( pSightEnt->pev->spawnflags, SF_MONSTER_PRISONER )	&& 
 				 pSightEnt->pev->health > 0 )
@@ -346,11 +342,10 @@ void CBaseMonster :: Look ( int iDistance )
 					{
 						if ( pev->spawnflags & SF_MONSTER_WAIT_TILL_SEEN )
 						{
-							CBaseMonster *pClient;
-
-							pClient = pSightEnt->MyMonsterPointer();
+							CBaseMonster* pClient = pSightEnt->MyMonsterPointer();
+							
 							// don't link this client in the list if the monster is wait till seen and the player isn't facing the monster
-							if ( pSightEnt && !pClient->FInViewCone( this ) )
+							if (pClient && !pClient->FInViewCone(this))
 							{
 								// we're not in the player's view cone. 
 								continue;
@@ -382,7 +377,7 @@ void CBaseMonster :: Look ( int iDistance )
 					case	R_NM:
 						iSighted |= bits_COND_SEE_NEMESIS;		
 						break;
-					case	R_HT:	
+					case	R_HT:		
 						iSighted |= bits_COND_SEE_HATE;		
 						break;
 					case	R_DL:
@@ -1250,7 +1245,7 @@ void CBaseMonster :: SetActivity ( Activity NewActivity )
 	else
 	{
 		// Not available try to get default anim
-		ALERT ( at_debug, "%s has no sequence for act:%d\n", STRING(pev->classname), NewActivity );
+		ALERT ( at_aiconsole, "%s has no sequence for act:%d\n", STRING(pev->classname), NewActivity );
 		pev->sequence		= 0;	// Set to the reset anim (if it's there)
 	}
 
@@ -1265,7 +1260,7 @@ void CBaseMonster :: SetActivity ( Activity NewActivity )
 //=========================================================
 // SetSequenceByName
 //=========================================================
-void CBaseMonster :: SetSequenceByName ( char *szSequence )
+void CBaseMonster :: SetSequenceByName ( const char *szSequence )
 {
 	int	iSequence;
 
@@ -1356,7 +1351,7 @@ int CBaseMonster :: CheckLocalMove ( const Vector &vecStart, const Vector &vecEn
 
 		if ( !WALK_MOVE( ENT(pev), flYaw, stepSize, WALKMOVE_CHECKONLY ) )
 		{// can't take the next step, fail!
-			
+
 			if ( pflDist != NULL )
 			{
 				*pflDist = flStep;
@@ -1994,7 +1989,7 @@ void CBaseMonster::MoveExecute( CBaseEntity *pTargetEnt, const Vector &vecDir, f
 	while (flTotal > 0.001)
 	{
 		// don't walk more than 16 units or stairs stop working
-		flStep = min( 16.0, flTotal );
+		flStep = V_min( 16.0, flTotal );
 		UTIL_MoveToOrigin ( ENT(pev), m_Route[ m_iRouteIndex ].vecLocation, flStep, MOVE_NORMAL );
 		flTotal -= flStep;
 	}
@@ -2049,9 +2044,9 @@ void CBaseMonster :: MonsterInit ( void )
 	// set eye position
 	SetEyePosition();
 
-	SetThink(&CBaseMonster :: MonsterInitThink );
+	SetThink( &CBaseMonster::MonsterInitThink );
 	SetNextThink( 0.1 );
-	SetUse(&CBaseMonster :: MonsterUse );
+	SetUse ( &CBaseMonster::MonsterUse );
 }
 
 //=========================================================
@@ -2148,7 +2143,7 @@ void CBaseMonster :: StartMonster ( void )
 
 	// Delay drop to floor to make sure each door in the level has had its chance to spawn
 	// Spread think times so that they don't all happen at the same time (Carmack)
-	SetThink(&CBaseMonster :: CallMonsterThink );
+	SetThink ( &CBaseMonster::CallMonsterThink );
 	AbsoluteNextThink( m_fNextThink + RANDOM_FLOAT(0.1, 0.4) ); // spread think times.
 	
 	if ( !FStringNull(pev->targetname) )// wait until triggered
@@ -2269,7 +2264,7 @@ BOOL CBaseMonster :: FindCover ( Vector vecThreat, Vector vecViewOffset, float f
 	if ( flMinDist > 0.5 * flMaxDist)
 	{
 #if _DEBUG
-		ALERT ( at_debug, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
+		ALERT ( at_console, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
 #endif
 		flMinDist = 0.5 * flMaxDist;
 	}
@@ -2374,7 +2369,7 @@ BOOL CBaseMonster :: BuildNearestRoute ( Vector vecThreat, Vector vecViewOffset,
 	if ( flMinDist > 0.5 * flMaxDist)
 	{
 #if _DEBUG
-		ALERT ( at_debug, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
+		ALERT ( at_console, "FindCover MinDist (%.0f) too close to MaxDist (%.0f)\n", flMinDist, flMaxDist );
 #endif
 		flMinDist = 0.5 * flMaxDist;
 	}
@@ -2555,7 +2550,17 @@ float CBaseMonster::ChangeYaw ( int yawSpeed )
 	ideal = pev->ideal_yaw;
 	if (current != ideal)
 	{
-		speed = (float)yawSpeed * gpGlobals->frametime * 10;
+		float delta = gpGlobals->time - m_flLastYawTime;
+
+		m_flLastYawTime = gpGlobals->time;
+
+		if (delta > 0.25)
+		{
+			delta = 0.25;
+		}
+
+		speed = yawSpeed * delta * 2;
+		
 		move = ideal - current;
 
 		if (ideal > current)
@@ -3468,11 +3473,11 @@ BOOL CBaseMonster :: GetEnemy ( void )
 //=========================================================
 // DropItem - dead monster drops named item 
 //=========================================================
-CBaseEntity* CBaseMonster :: DropItem ( char *pszItemName, const Vector &vecPos, const Vector &vecAng )
+CBaseEntity* CBaseMonster :: DropItem ( const char *pszItemName, const Vector &vecPos, const Vector &vecAng )
 {
 	if ( !pszItemName )
 	{
-		ALERT ( at_debug, "DropItem() - No item name!\n" );
+		ALERT ( at_console, "DropItem() - No item name!\n" );
 		return NULL;
 	}
 
@@ -3483,11 +3488,15 @@ CBaseEntity* CBaseMonster :: DropItem ( char *pszItemName, const Vector &vecPos,
 		// do we want this behavior to be default?! (sjb)
 		pItem->pev->velocity = pev->velocity;
 		pItem->pev->avelocity = Vector ( 0, RANDOM_FLOAT( 0, 100 ), 0 );
+
+		//Dropped items should never respawn (unless this rule changes in the future). - Solokiller
+		pItem->pev->spawnflags |= SF_NORESPAWN;
+		
 		return pItem;
 	}
 	else
 	{
-		ALERT ( at_debug, "DropItem() - Didn't create!\n" );
+		ALERT ( at_console, "DropItem() - Didn't create!\n" );
 		return FALSE;
 	}
 

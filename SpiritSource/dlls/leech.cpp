@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -200,7 +200,7 @@ void CLeech::Spawn( void )
 	m_flFieldOfView		= -0.5;	// 180 degree FOV
 	m_flDistLook		= 750;
 	MonsterInit();
-	SetThink(&CLeech:: SwimThink );
+	SetThink( &CLeech::SwimThink );
 	SetUse( NULL );
 	SetTouch( NULL );
 	pev->view_ofs = g_vecZero;
@@ -707,7 +707,7 @@ void CLeech::Killed(entvars_t *pevAttacker, int iGib)
 		pOwner->DeathNotice(pev);
 
 	// When we hit the ground, play the "death_end" activity
-	if ( pev->waterlevel && pev->watertype != CONTENT_FOG)
+	if ( pev->waterlevel && pev->watertype != CONTENT_FOG )
 	{
 		pev->angles.z = 0;
 		pev->angles.x = 0;
@@ -725,7 +725,7 @@ void CLeech::Killed(entvars_t *pevAttacker, int iGib)
 	
 	pev->movetype = MOVETYPE_TOSS;
 	pev->takedamage = DAMAGE_NO;
-	SetThink(&CLeech:: DeadThink );
+	SetThink( &CLeech::DeadThink );
 }
 
 

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -66,8 +66,8 @@ enum decal_e
 
 typedef struct 
 {
-	char	*name;
-	int		index;
+	const char	*name;
+	int			index;
 } DLL_DECALLIST;
 
 extern DLL_DECALLIST gDecals[];

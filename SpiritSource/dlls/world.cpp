@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -125,15 +125,15 @@ void CDecal :: Spawn( void )
 
 	if ( FStringNull ( pev->targetname ) )
 	{
-		SetThink(&CDecal :: StaticDecal );
+		SetThink( &CDecal::StaticDecal );
 		// if there's no targetname, the decal will spray itself on as soon as the world is done spawning.
 		SetNextThink( 0 );
 	}
 	else
 	{
 		// if there IS a targetname, the decal sprays itself on when it is triggered.
-		SetThink(&CDecal :: SUB_DoNothing );
-		SetUse(&CDecal ::TriggerDecal);
+		SetThink ( &CDecal::SUB_DoNothing );
+		SetUse( &CDecal::TriggerDecal);
 	}
 }
 
@@ -158,8 +158,8 @@ void CDecal :: TriggerDecal ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE
 			WRITE_SHORT( (int)VARS(trace.pHit)->modelindex );
 	MESSAGE_END();
 
-	SetThink(&CDecal :: SUB_Remove );
-	SetNextThink( 0.1 );
+	SetThink( &CDecal::SUB_Remove );
+		SetNextThink( 0.1 );
 }
 
 
@@ -191,7 +191,7 @@ void CDecal :: KeyValue( KeyValueData *pkvd )
 		// Found
 		if ( pev->skin >= 0 )
 			return;
-		ALERT( at_debug, "Can't find decal %s\n", pkvd->szValue );
+		ALERT( at_console, "Can't find decal %s\n", pkvd->szValue );
 	}
 	else
 		CBaseEntity::KeyValue( pkvd );
@@ -299,14 +299,14 @@ globalentity_t *CGlobalState :: Find( string_t globalname )
 //#ifdef _DEBUG
 void CGlobalState :: DumpGlobals( void )
 {
-	static char *estates[] = { "Off", "On", "Dead" };
+	static const char *estates[] = { "Off", "On", "Dead" };
 	globalentity_t *pTest;
 
-	ALERT( at_debug, "-- Globals --\n" );
+	ALERT( at_console, "-- Globals --\n" );
 	pTest = m_pList;
 	while ( pTest )
 	{
-		ALERT( at_debug, "%s: %s (%s)\n", pTest->name, pTest->levelName, estates[pTest->state] );
+		ALERT( at_console, "%s: %s (%s)\n", pTest->name, pTest->levelName, estates[pTest->state] );
 		pTest = pTest->pNext;
 	}
 }
@@ -375,13 +375,13 @@ int CGlobalState::Save( CSave &save )
 	int i;
 	globalentity_t *pEntity;
 
-	if ( !save.WriteFields( "cGLOBAL", "GLOBAL", this, m_SaveData, ARRAYSIZE(m_SaveData) ) )
+	if ( !save.WriteFields( "GLOBAL", this, m_SaveData, ARRAYSIZE(m_SaveData) ) )
 		return 0;
 	
 	pEntity = m_pList;
 	for ( i = 0; i < m_listCount && pEntity; i++ )
 	{
-		if ( !save.WriteFields( "cGENT", "GENT", pEntity, gGlobalEntitySaveData, ARRAYSIZE(gGlobalEntitySaveData) ) )
+		if ( !save.WriteFields( "GENT", pEntity, gGlobalEntitySaveData, ARRAYSIZE(gGlobalEntitySaveData) ) )
 			return 0;
 
 		pEntity = pEntity->pNext;
@@ -453,8 +453,6 @@ void ResetGlobalState( void )
 	gInitHUD = TRUE;	// Init the HUD on a new game / load game
 }
 
-
-
 // moved CWorld class definition to cbase.h
 //=======================
 // CWorld
@@ -505,6 +503,7 @@ void CWorld :: Precache( void )
 	if (g_pGameRules)
 	{
 		delete g_pGameRules;
+		g_pGameRules = nullptr;
 	}
 
 	g_pGameRules = InstallGameRules( );
@@ -514,12 +513,11 @@ void CWorld :: Precache( void )
 	///!!!LATER - do we want a sound ent in deathmatch? (sjb)
 	//pSoundEnt = CBaseEntity::Create( "soundent", g_vecZero, g_vecZero, edict() );
 	pSoundEnt = GetClassPtr( ( CSoundEnt *)NULL );
-	pSoundEnt->Spawn();
 
-	if ( !pSoundEnt )
-	{
-		ALERT ( at_debug, "**COULD NOT CREATE SOUNDENT**\n" );
-	}
+	if (pSoundEnt)
+		pSoundEnt->Spawn();
+	else
+		ALERT ( at_console, "**COULD NOT CREATE SOUNDENT**\n" );
 
 	InitBodyQue();
 	
@@ -584,7 +582,7 @@ void CWorld :: Precache( void )
 	// 63 testing
 	LIGHT_STYLE(63, "a");
 
-	for (i = 0; i < ARRAYSIZE(gDecals); i++ )
+	for ( i = 0; i < ARRAYSIZE(gDecals); i++ )
 		gDecals[i].index = DECAL_INDEX( gDecals[i].name );
 
 // init the WorldGraph.
@@ -599,12 +597,12 @@ void CWorld :: Precache( void )
 	{// Load the node graph for this level
 		if ( !WorldGraph.FLoadGraph ( (char *)STRING( gpGlobals->mapname ) ) )
 		{// couldn't load, so alloc and prepare to build a graph.
-			ALERT ( at_debug, "*Error opening .NOD file\n" );
+			ALERT ( at_console, "*Error opening .NOD file\n" );
 			WorldGraph.AllocNodes ();
 		}
 		else
 		{
-			ALERT ( at_debug, "\n*Graph Loaded!\n" );
+			ALERT ( at_console, "\n*Graph Loaded!\n" );
 		}
 	}
 
@@ -619,7 +617,7 @@ void CWorld :: Precache( void )
 		CBaseEntity *pEntity = CBaseEntity::Create( "env_message", g_vecZero, g_vecZero, NULL );
 		if ( pEntity )
 		{
-			pEntity->SetThink(&CWorld::SUB_CallUseToggle );
+			pEntity->SetThink( &CBaseEntity::SUB_CallUseToggle );
 			pEntity->pev->message = pev->netname;
 			pev->netname = 0;
 			pEntity->SetNextThink( 0.3 );

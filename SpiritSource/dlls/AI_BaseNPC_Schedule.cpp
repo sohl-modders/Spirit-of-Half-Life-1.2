@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1999, 2000 Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -96,7 +96,7 @@ void CBaseMonster :: ChangeSchedule ( Schedule_t *pNewSchedule )
 #if _DEBUG
 	if ( !ScheduleFromName( pNewSchedule->pName ) )
 	{
-		ALERT( at_debug, "Schedule %s not in table!!!\n", pNewSchedule->pName );
+		ALERT( at_console, "Schedule %s not in table!!!\n", pNewSchedule->pName );
 	}
 #endif
 	
@@ -185,6 +185,8 @@ BOOL CBaseMonster :: FScheduleValid ( void )
 		if ( HasConditions ( bits_COND_TASK_FAILED ) && m_failSchedule == SCHED_NONE )
 		{
 			// fail! Send a visual indicator.
+			ALERT ( at_aiconsole, "Schedule: %s Failed\n", m_pSchedule->pName );
+
 			Vector tmp = pev->origin;
 			tmp.z = pev->absmax.z + 16;
 			UTIL_Sparks( tmp );
@@ -258,9 +260,7 @@ void CBaseMonster :: MaintainSchedule ( void )
 			{
 				SetState( m_IdealMonsterState );
 				if ( m_MonsterState == MONSTERSTATE_SCRIPT || m_MonsterState == MONSTERSTATE_DEAD )
-				{
 					pNewSchedule = CBaseMonster::GetSchedule();
-				}
 				else
 					pNewSchedule = GetSchedule();
 				ChangeSchedule( pNewSchedule );
@@ -902,7 +902,7 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 		{
 			Activity newActivity;
 
-			if ( !m_pGoalEnt || (m_pGoalEnt->pev->origin - pev->origin).Length() < 1 )
+			if ( (m_hTargetEnt->pev->origin - pev->origin).Length() < 1 )
 				TaskComplete();
 			else
 			{
@@ -921,8 +921,8 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 						vecDest = m_pGoalEnt->pev->origin;
 
 						if ( !MoveToLocation( newActivity, 2, vecDest ) )
-						{
-							TaskFail();
+					{
+						TaskFail();
 							ALERT( at_aiconsole, "%s Failed to reach script!!!\n", STRING(pev->classname) );
 							RouteClear();
 						}
@@ -1050,7 +1050,7 @@ void CBaseMonster :: StartTask ( Task_t *pTask )
 		break;
 	case TASK_GET_PATH_TO_SPOT:
 		{
-			CBaseEntity *pPlayer = UTIL_FindEntityByClassname( NULL, "player" );
+			CBaseEntity *pPlayer = CBaseEntity::Instance( FIND_ENTITY_BY_CLASSNAME( NULL, "player" ) );
 			if ( BuildRoute ( m_vecMoveGoal, bits_MF_TO_LOCATION, pPlayer ) )
 			{
 				TaskComplete();
@@ -1328,8 +1328,8 @@ case TASK_GET_PATH_TO_BESTSCENT:
 					m_IdealActivity = ACT_HOP; break;
 				}
 				pev->framerate = 1.0; // shouldn't be needed, but just in case
-				pev->movetype = MOVETYPE_FLY;
-				ClearBits(pev->flags, FL_ONGROUND);
+			pev->movetype = MOVETYPE_FLY;
+			ClearBits(pev->flags, FL_ONGROUND);
 			}
 			else
 			{
@@ -1405,6 +1405,7 @@ case TASK_GET_PATH_TO_BESTSCENT:
 			RouteClear();
 			break;
 		}
+
 	case TASK_SUGGEST_STATE:
 		{
 			m_IdealMonsterState = (MONSTERSTATE)(int)pTask->flData;
@@ -1603,7 +1604,6 @@ Schedule_t *CBaseMonster :: GetSchedule ( void )
 			if ( !m_pCine )
 			{
 				ALERT( at_aiconsole, "Script failed for %s\n", STRING(pev->classname) );
-//				ALERT( at_console, "Script failed for %s\n", STRING(pev->classname) );
 				CineCleanup();
 				return GetScheduleOfType( SCHED_IDLE_STAND );
 			}

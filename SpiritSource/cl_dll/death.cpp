@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1999, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -109,13 +109,13 @@ int CHudDeathNotice :: Draw( float flTime )
 			continue;
 		}
 
-		rgDeathNoticeList[i].flDisplayTime = min( rgDeathNoticeList[i].flDisplayTime, gHUD.m_flTime + DEATHNOTICE_DISPLAY_TIME );
+		rgDeathNoticeList[i].flDisplayTime = V_min( rgDeathNoticeList[i].flDisplayTime, gHUD.m_flTime + DEATHNOTICE_DISPLAY_TIME );
 
 		// Only draw if the viewport will let me
 		if ( gViewPort && gViewPort->AllowedToPrintText() )
 		{
 			// Draw the death notice
-			y = YRES(DEATHNOTICE_TOP) + 2 + (20 * i);  //!!!
+			y = DEATHNOTICE_TOP + 2 + (20 * i);  //!!!
 
 			int id = (rgDeathNoticeList[i].iId == -1) ? m_HUD_d_skull : rgDeathNoticeList[i].iId;
 			x = ScreenWidth - ConsoleStringLen(rgDeathNoticeList[i].szVictim) - (gHUD.GetSpriteRect(id).right - gHUD.GetSpriteRect(id).left);
@@ -173,8 +173,8 @@ int CHudDeathNotice :: MsgFunc_DeathMsg( const char *pszName, int iSize, void *p
 		gViewPort->DeathMsg( killer, victim );
 
 	gHUD.m_Spectator.DeathMessage(victim);
-
-	for ( int i = 0; i < MAX_DEATHNOTICES; i++ )
+	int i;
+	for ( i = 0; i < MAX_DEATHNOTICES; i++ )
 	{
 		if ( rgDeathNoticeList[i].iId == 0 )
 			break;
@@ -189,7 +189,7 @@ int CHudDeathNotice :: MsgFunc_DeathMsg( const char *pszName, int iSize, void *p
 		gViewPort->GetAllPlayersInfo();
 
 	// Get the Killer's name
-	char *killer_name = g_PlayerInfoList[ killer ].name;
+	const char *killer_name = g_PlayerInfoList[ killer ].name;
 	if ( !killer_name )
 	{
 		killer_name = "";
@@ -203,7 +203,7 @@ int CHudDeathNotice :: MsgFunc_DeathMsg( const char *pszName, int iSize, void *p
 	}
 
 	// Get the Victim's name
-	char *victim_name = NULL;
+	const char *victim_name = NULL;
 	// If victim is -1, the killer killed a specific, non-player object (like a sentrygun)
 	if ( ((char)victim) != -1 )
 		victim_name = g_PlayerInfoList[ victim ].name;

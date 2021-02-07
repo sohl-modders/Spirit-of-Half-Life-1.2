@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -52,23 +52,32 @@ CBaseEntity
 // UNDONE: This will ignore transition volumes (trigger_transition), but not the PVS!!!
 #define		FCAP_FORCE_TRANSITION		0x00000080		// ALWAYS goes across transitions
 
+#ifndef ARCHTYPES_H
+#include "archtypes.h"     // DAL
+#endif
+
+#ifndef SAVERESTORE_H
 #include "saverestore.h"
+#endif
+
+#ifndef SCHEDULE_H
 #include "schedule.h"
+#endif
 
 #ifndef MONSTEREVENT_H
 #include "monsterevent.h"
 #endif
 
-// C functions for external declarations that call the appropriate C++ methods
-
-#ifdef _WIN32
-#define EXPORT	_declspec( dllexport )
-#else
-#define EXPORT	/* */
+#ifndef PLATFORM_H
+#include "Platform.h"
 #endif
 
-extern "C" EXPORT int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion );
-extern "C" EXPORT int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion );
+// C functions for external declarations that call the appropriate C++ methods
+
+#define EXPORT DLLEXPORT
+
+extern "C" DLLEXPORT int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion );
+extern "C" DLLEXPORT int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion );
 
 extern int DispatchSpawn( edict_t *pent );
 extern void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd );
@@ -156,6 +165,14 @@ public:
 	CBaseEntity * operator ->();
 };
 
+/**
+*	Helper function to cast from an EHANDLE to an entity class without having to manually cast to CBaseEntity first.
+*/
+template<typename T>
+T EHANDLE_cast(EHANDLE& handle)
+{
+	return static_cast<T>(static_cast<CBaseEntity*>(handle));
+}
 
 //
 // Base Entity.  All entity types derive from this
@@ -164,6 +181,8 @@ class CBaseEntity
 {
 public:
 	// Constructor.  Set engine to use C/C++ callback functions
+	virtual ~CBaseEntity() = default;
+
 	// pointers to engine data
 	entvars_t *pev;		// Don't need to save/restore this pointer, the engine resets it
 
@@ -181,7 +200,7 @@ public:
 	Vector				m_vecPostAssistVel; // LRC
 	Vector				m_vecPostAssistAVel; // LRC
 	float				m_fNextThink; // LRC - for SetNextThink and SetPhysThink. Marks the time when a think will be performed - not necessarily the same as pev->nextthink!
-	float				m_fPevNextThink; // LRC - always set equal to pev->nextthink, so that we can tell when the latter gets changed by the @#$^Â¬! engine.
+	float				m_fPevNextThink; // LRC - always set equal to pev->nextthink, so that we can tell when the latter gets changed by the @#$^¬! engine.
 	int					m_iLFlags; // LRC- a new set of flags. (pev->spawnflags and pev->flags are full...)
 	virtual void		DesiredAction( void ) {}; // LRC - for postponing stuff until PostThink time, not as a think.
 	int					m_iStyle; // LRC - almost anything can have a lightstyle these days...
@@ -258,12 +277,12 @@ public:
 	void			InitMoveWith( void ); //LRC - called by Activate() to set up moveWith values
 	virtual void	PostSpawn( void ) {} //LRC - called by Activate() to handle entity-specific initialisation.
 										 // (mostly setting positions, for MoveWith support)
-	
+
 	// Setup the object->object collision box (pev->mins / pev->maxs is the object->world collision box)
 	virtual void	SetObjectCollisionBox( void );
 
-// Classify - returns the type of group (e.g., "alien monster", or "human military" so that monsters
-// on the same side won't attack each other, even if they have different classnames.
+// Classify - returns the type of group (i.e, "houndeye", or "human military" so that monsters with different classnames
+// still realize that they are teammates. (overridden for monsters that form groups)
 	virtual int Classify ( void ) { return CLASS_NONE; };
 	virtual void DeathNotice ( entvars_t *pevChild ) {}// monster maker children use this to tell the monster maker that they have died.
 
@@ -292,7 +311,7 @@ public:
 	virtual void	AddPointsToTeam( int score, BOOL bAllowNegativeScore ) {}
 	virtual BOOL	AddPlayerItem( CBasePlayerItem *pItem ) { return 0; }
 	virtual BOOL	RemovePlayerItem( CBasePlayerItem *pItem ) { return 0; }
-	virtual int 	GiveAmmo( int iAmount, char *szName, int iMax ) { return -1; };
+	virtual int 	GiveAmmo( int iAmount, const char *szName, int iMax ) { return -1; };
 	virtual float	GetDelay( void ) { return 0; }
 	virtual int		IsMoving( void ) { return pev->velocity != g_vecZero; }
 	virtual void	OverrideReset( void ) {}
@@ -311,7 +330,6 @@ public:
 	virtual	BOOL	IsPlayer( void ) { return FALSE; }
 	virtual BOOL	IsNetClient( void ) { return FALSE; }
 	virtual const char *TeamID( void ) { return ""; }
-
 
 //	virtual void	SetActivator( CBaseEntity *pActivator ) {}
 	virtual CBaseEntity *GetNextTarget( void );
@@ -345,7 +363,12 @@ public:
 	};
 #endif
 
-	void UpdateOnRemove( void );
+	/**
+	*	Called when an entity is removed at runtime. Gives entities a chance to respond to it. Not called during map change or shutdown.
+	*	Call the baseclass version after handling it.
+	*	Used to be non-virtual - Solokiller
+	*/
+	virtual void UpdateOnRemove();
 
 	// common member functions
 	void EXPORT SUB_Remove( void );
@@ -395,6 +418,7 @@ public:
 	}
 
 
+	
 	// Ugly code to lookup all functions to make sure they are exported when set.
 #ifdef _DEBUG
 	void FunctionCheck( void *pFunction, char *name ) 
@@ -438,7 +462,7 @@ public:
 
 
 	//
-	static CBaseEntity *Create( char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner = NULL );
+	static CBaseEntity *Create( const char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner = NULL );
 
 	virtual BOOL FBecomeProne( void ) {return FALSE;};
 	edict_t *edict() { return ENT( pev ); };
@@ -529,7 +553,7 @@ void PlayLockSounds(entvars_t *pev, locksound_t *pls, int flocked, int fbutton);
 // MultiSouce
 //
 
-#define MAX_MULTI_TARGETS	16 // maximum number of targets a single multi_manager entity may be assigned.
+#define MAX_MULTI_TARGETS	32 // maximum number of targets a single multi_manager entity may be assigned.
 #define MS_MAX_TARGETS 32
 
 class CMultiSource : public CPointEntity
@@ -800,7 +824,7 @@ class CSound;
 #include "basemonster.h"
 
 
-char *ButtonSound( int sound );				// get string of button sound number
+const char *ButtonSound( int sound );				// get string of button sound number
 
 
 //
@@ -816,9 +840,7 @@ public:
 	virtual void KeyValue( KeyValueData* pkvd);
 
 	void ButtonActivate( );
-	void SparkSoundCache( void );
 
-	void EXPORT ButtonShot( void );
 	void EXPORT ButtonTouch( CBaseEntity *pOther );
 	void EXPORT ButtonSpark ( void );
 	void EXPORT TriggerAndWait( void );
@@ -835,7 +857,7 @@ public:
 	
 	static	TYPEDESCRIPTION m_SaveData[];
 	virtual int	ObjectCaps( void );
-
+	
 	BOOL	m_fStayPushed;	// button stays pushed in until touched again?
 	BOOL	m_fRotating;		// a rotating button?  default is a sliding button.
 

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -156,7 +156,7 @@ public:
 	static	TYPEDESCRIPTION m_SaveData[];
 
 	
-	static char *m_szFriends[TLK_CFRIENDS];		// array of friend names
+	static const char *m_szFriends[TLK_CFRIENDS];		// array of friend names
 	static float g_talkWaitTime;
 	
 	int			m_bitsSaid;						// set bits for sentences we don't want repeated

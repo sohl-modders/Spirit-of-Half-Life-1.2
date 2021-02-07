@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -20,6 +20,7 @@
 #include	"cbase.h"
 #include	"monsters.h"
 #include	"schedule.h"
+#include 	"soundent.h"
 #include	"animation.h"
 
 // For holograms, make them not solid so the player can walk through them
@@ -84,7 +85,7 @@ void CGenericMonster::KeyValue( KeyValueData *pkvd )
 //=========================================================
 int	CGenericMonster :: Classify ( void )
 {
-	return m_iClass?m_iClass:CLASS_PLAYER_ALLY;
+	return	m_iClass?m_iClass:CLASS_PLAYER_ALLY;
 }
 
 //=========================================================

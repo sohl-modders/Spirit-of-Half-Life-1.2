@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -19,8 +19,6 @@
   spawn and use functions for editor-placed triggers              
 
 */
-//CODIAC - Linux needs this for tolower
-#include <ctype.h>
 
 #include "extdll.h"
 #include "util.h"
@@ -35,6 +33,10 @@
 #include "locus.h" //LRC
 //#include "hgrunt.h"
 //#include "islave.h"
+
+#ifndef WIN32
+#include <ctype.h> // tolower - Shepard
+#endif
 
 #define	SF_TRIGGER_PUSH_START_OFF	2//spawnflag that makes trigger_push spawn turned OFF
 #define SF_TRIGGER_HURT_TARGETONCE	1// Only fire hurt target once
@@ -81,7 +83,7 @@ void CFrictionModifier :: Spawn( void )
 	pev->solid = SOLID_TRIGGER;
 	SET_MODEL(ENT(pev), STRING(pev->model));    // set size and link into world
 	pev->movetype = MOVETYPE_NONE;
-	SetTouch(&CFrictionModifier :: ChangeFriction );
+	SetTouch( &CFrictionModifier::ChangeFriction );
 }
 
 
@@ -441,7 +443,7 @@ void CTriggerRotTest::Think( void )
 }
 
 //**********************************************************
-// The Multimanager Entity - when fired, will fire up to 16 targets 
+// The Multimanager Entity - when fired, will fire up to 32 targets 
 // at specified times.
 // FLAG:		THREAD (create clones when triggered)
 // FLAG:		CLONE (this is a clone for a threaded execution)
@@ -512,6 +514,7 @@ private:
 	
 	CMultiManager *Clone( void );
 };
+
 LINK_ENTITY_TO_CLASS( multi_manager, CMultiManager );
 
 // Global Savedata for multi_manager
@@ -848,7 +851,18 @@ void CMultiManager :: ManagerThink ( void )
 //		ALERT(at_console,"Manager sends %d to %s\n",m_triggerType,STRING(m_iTargetName[m_index]));
 		if (pev->spawnflags & SF_MULTIMAN_DEBUG)
 			ALERT(at_debug, "DEBUG: multi_manager \"%s\": firing \"%s\".\n", STRING(pev->targetname), STRING( m_iTargetName[ index ] ));
-		FireTargets( STRING( m_iTargetName[ index ] ), m_hActivator, this, m_triggerType, 0 );
+
+		// Check if the entity is triggering itself while not being multi-threaded, report if so
+		if ( FStrEq(STRING(m_iTargetName[index]), STRING(pev->targetname)) && !(pev->spawnflags & SF_MULTIMAN_THREAD) )
+		{
+			ALERT( at_aiconsole, "WARNING: non-multithreaded multi_manager %s tried triggering itself!\nAvoiding crash...\n", STRING( pev->targetname ) );
+		}
+		
+		else
+		{
+			FireTargets( STRING( m_iTargetName[index] ), m_hActivator, this, m_triggerType, 0 );
+		}
+
 		index++;
 	}
 }
@@ -1001,7 +1015,7 @@ void CMultiManager :: ManagerReport ( void )
 
 	for ( cIndex = 0 ; cIndex < m_cTargets ; cIndex++ )
 	{
-		ALERT ( at_debug, "%s %f\n", STRING(m_iTargetName[cIndex]), m_flTargetDelay[cIndex] );
+		ALERT ( at_console, "%s %f\n", STRING(m_iTargetName[cIndex]), m_flTargetDelay[cIndex] );
 	}
 }
 #endif
@@ -2168,18 +2182,31 @@ BOOL CBaseTrigger :: CanTouch( entvars_t *pevToucher )
 //
 void CBaseTrigger :: ToggleUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if (pev->solid == SOLID_NOT)
-	{// if the trigger is off, turn it on
-		pev->solid = SOLID_TRIGGER;
-		
-		// Force retouch
-		gpGlobals->force_retouch++;
+	switch (useType) {
+		case 1: //Enable
+			pev->solid = SOLID_TRIGGER;
+			// Force retouch
+			gpGlobals->force_retouch++;
+		break;
+		case 0: //Disable
+			pev->solid = SOLID_NOT;
+		break;
+		default: //Toggle
+			if (pev->solid == SOLID_NOT)
+			{// if the trigger is off, turn it on
+				pev->solid = SOLID_TRIGGER;
+
+				// Force retouch
+				gpGlobals->force_retouch++;
+			}
+			else
+			{// turn the trigger off
+				pev->solid = SOLID_NOT;
+			}
+		break;
 	}
-	else
-	{// turn the trigger off
-		pev->solid = SOLID_NOT;
-	}
-	UTIL_SetOrigin( this, pev->origin );
+	
+	UTIL_SetOrigin(this, pev->origin);
 }
 
 /*
@@ -3333,18 +3360,18 @@ When the player touches this, he gets sent to the map listed in the "map" variab
 void CChangeLevel :: Spawn( void )
 {
 	if ( FStrEq( m_szMapName, "" ) )
-		ALERT( at_debug, "a trigger_changelevel doesn't have a map" );
+		ALERT( at_console, "a trigger_changelevel doesn't have a map" );
 
 	if ( FStrEq( m_szLandmarkName, "" ) )
-		ALERT( at_debug, "trigger_changelevel to %s doesn't have a landmark", m_szMapName );
+		ALERT( at_console, "trigger_changelevel to %s doesn't have a landmark", m_szMapName );
 
 	if (!FStringNull ( pev->targetname ) )
 	{
-		SetUse(&CChangeLevel :: UseChangeLevel );
+		SetUse ( &CChangeLevel::UseChangeLevel );
 	}
 	InitTrigger();
 	if ( !(pev->spawnflags & SF_CHANGELEVEL_USEONLY) )
-		SetTouch(&CChangeLevel :: TouchChangeLevel );
+		SetTouch( &CChangeLevel::TouchChangeLevel );
 //	ALERT( at_console, "TRANSITION: %s (%s)\n", m_szMapName, m_szLandmarkName );
 }
 
@@ -3446,7 +3473,7 @@ void CChangeLevel :: ChangeLevelNow( CBaseEntity *pActivator )
 		gpGlobals->vecLandmarkOffset = VARS(pentLandmark)->origin;
 	}
 //	ALERT( at_console, "Level touches %d levels\n", ChangeList( levels, 16 ) );
-	ALERT( at_debug, "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot );
+	ALERT( at_console, "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot );
 	CHANGE_LEVEL( st_szNextMap, st_szNextSpot );
 }
 
@@ -3771,10 +3798,13 @@ void CTriggerPush :: Spawn( )
 		pev->angles.y = 360;
 	InitTrigger();
 
+	if (pev->speed == 0)
+		pev->speed = 100;
+
 	if ( FBitSet (pev->spawnflags, SF_TRIGGER_PUSH_START_OFF) )// if flagged to Start Turned Off, make trigger nonsolid.
 		pev->solid = SOLID_NOT;
 
-	SetUse(&CTriggerPush :: ToggleUse );
+	SetUse( &CTriggerPush::ToggleUse );
 
 	UTIL_SetOrigin( this, pev->origin );		// Link into the list
 }
@@ -4184,7 +4214,7 @@ void CTriggerSave::Spawn( void )
 	}
 
 	InitTrigger();
-	SetTouch(&CTriggerSave:: SaveTouch );
+	SetTouch( &CTriggerSave::SaveTouch );
 }
 
 void CTriggerSave::SaveTouch( CBaseEntity *pOther )
@@ -4239,10 +4269,10 @@ void CTriggerEndSection::Spawn( void )
 
 	InitTrigger();
 
-	SetUse(&CTriggerEndSection:: EndSectionUse );
+	SetUse ( &CTriggerEndSection::EndSectionUse );
 	// If it is a "use only" trigger, then don't set the touch function.
 	if ( ! (pev->spawnflags & SF_ENDSECTION_USEONLY) )
-		SetTouch(&CTriggerEndSection:: EndSectionTouch );
+		SetTouch( &CTriggerEndSection::EndSectionTouch );
 }
 
 void CTriggerEndSection::EndSectionTouch( CBaseEntity *pOther )
@@ -4285,7 +4315,7 @@ LINK_ENTITY_TO_CLASS( trigger_gravity, CTriggerGravity );
 void CTriggerGravity::Spawn( void )
 {
 	InitTrigger();
-	SetTouch(&CTriggerGravity:: GravityTouch );
+	SetTouch( &CTriggerGravity::GravityTouch );
 }
 
 void CTriggerGravity::GravityTouch( CBaseEntity *pOther )
@@ -5153,7 +5183,9 @@ void CTriggerCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	{
 		pActivator = CBaseEntity::Instance(g_engfuncs.pfnPEntityOfEntIndex( 1 ));
 	}
-		
+
+	auto player = static_cast<CBasePlayer*>(pActivator);
+	
 	m_hPlayer = pActivator;
 
 	m_flReturnTime = gpGlobals->time + m_flWait;
@@ -5175,10 +5207,9 @@ void CTriggerCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 		return;
 	}
 
-
 	if (FBitSet (pev->spawnflags, SF_CAMERA_PLAYER_TAKECONTROL ) )
 	{
-		((CBasePlayer *)pActivator)->EnableControl(FALSE);
+		player->EnableControl(FALSE);
 	}
 
 	if ( m_sPath )
@@ -5227,6 +5258,8 @@ void CTriggerCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 		SET_VIEW( pActivator->edict(), edict() );
 	}
 
+	player->m_hViewEntity = this;
+	
 	SET_MODEL(ENT(pev), STRING(pActivator->pev->model) );
 
 	// follow the player down
@@ -5245,11 +5278,16 @@ void CTriggerCamera::FollowTarget( )
 
 	if (m_hTarget == NULL || m_flReturnTime < gpGlobals->time)
 	{
-		if (m_hPlayer->IsAlive( ))
+		auto player = static_cast<CBasePlayer*>(static_cast<CBaseEntity*>(m_hPlayer));
+		if (player->IsAlive())
 		{
-			SET_VIEW( m_hPlayer->edict(), m_hPlayer->edict() );
-			((CBasePlayer *)((CBaseEntity *)m_hPlayer))->EnableControl(TRUE);
+			SET_VIEW(player->edict(), player->edict());
+			player->EnableControl(TRUE);
 		}
+
+		player->m_hViewEntity = nullptr;
+		player->m_bResetViewEntity = false;
+		
 		SUB_UseTargets( this, USE_TOGGLE, 0 );
 		pev->avelocity = Vector( 0, 0, 0 );
 		m_state = 0;
@@ -5341,4 +5379,3 @@ void CTriggerCamera::Move()
 	float fraction = 2 * gpGlobals->frametime;
 	pev->velocity = ((pev->movedir * pev->speed) * fraction) + (pev->velocity * (1-fraction));
 }
-

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -169,8 +169,16 @@ void CBaseEntity::UpdateOnRemove( void )
 			}
 		}
 	}
+	
 	if ( pev->globalname )
 		gGlobalState.EntitySetState( pev->globalname, GLOBAL_DEAD );
+
+	// tell owner ( if any ) that we're dead.This is mostly for MonsterMaker functionality.
+	//Killtarget didn't do this before, so the counter broke. - Solokiller
+	if (CBaseEntity* pOwner = Instance(pev->owner))
+	{
+		pOwner->DeathNotice(pev);
+	}
 }
 
 // Convenient way to delay removing oneself
@@ -365,7 +373,7 @@ void CBaseDelay :: SUB_UseTargets( CBaseEntity *pActivator, USE_TYPE useType, fl
 
 		pTemp->SetNextThink( m_flDelay );
 
-		pTemp->SetThink(&CBaseDelay:: DelayThink );
+		pTemp->SetThink( &CBaseDelay::DelayThink );
 		
 		// Save the useType
 		pTemp->pev->button = (int)useType;
@@ -373,6 +381,19 @@ void CBaseDelay :: SUB_UseTargets( CBaseEntity *pActivator, USE_TYPE useType, fl
 		pTemp->m_flDelay = 0; // prevent "recursion"
 		pTemp->pev->target = pev->target;
 
+		// HACKHACK
+		// This wasn't in the release build of Half-Life.  We should have moved m_hActivator into this class
+		// but changing member variable hierarchy would break save/restore without some ugly code.
+		// This code is not as ugly as that code
+		//if ( pActivator && pActivator->IsPlayer() )		// If a player activates, then save it
+		//{
+		//	pTemp->pev->owner = pActivator->edict();
+		//}
+		//else
+		//{
+		//	pTemp->pev->owner = NULL;
+		//}
+	
 		//LRC - Valve had a hacked thing here to avoid breaking
 		// save/restore. In Spirit that's not a problem.
 		// I've moved m_hActivator into this class, for the "elegant" fix.
@@ -390,7 +411,7 @@ void CBaseDelay :: SUB_UseTargets( CBaseEntity *pActivator, USE_TYPE useType, fl
 		edict_t *pentKillTarget = NULL;
 
 		ALERT( at_aiconsole, "KillTarget: %s\n", STRING(m_iszKillTarget) );
-		//LRC- now just USE_KILLs its killtarget, for consistency.
+				//LRC- now just USE_KILLs its killtarget, for consistency.
 		FireTargets( STRING(m_iszKillTarget), pActivator, this, USE_KILL, 0);
 	}
 	
@@ -533,7 +554,7 @@ void CBaseToggle ::  LinearMove( Vector	vecInput, float flSpeed )//, BOOL bNow )
 //		ALERT(at_console,"Setting LinearMoveNow to happen after %f\n",gpGlobals->time);
 		SetThink(&CBaseToggle :: LinearMoveNow );
 		UTIL_DesiredThink( this );
-		//pev->nextthink = pev->ltime + 0.01;
+		//SetNextThink(0.01);
 //	}
 //	else
 //	{
@@ -603,7 +624,7 @@ After moving, set origin to exact final destination, call "move done" function
 		// HACK: not there yet, try waiting one more frame.
 		ALERT(at_console,"Rejecting difference %f\n",vecDiff.Length());
 		SetThink(&CBaseToggle ::LinearMoveFinalDone);
-		pev->nextthink = gpGlobals->time + 0.01;
+		SetNextThink(0.01);
 	}
 	else
 	{
@@ -638,7 +659,6 @@ void CBaseToggle :: LinearMoveDoneNow( void )
 	}
 	UTIL_AssignOrigin(this, vecDest);
 	DontThink(); //LRC
-	//pev->nextthink = -1;
 	if ( m_pfnCallWhenMoveDone )
 		(this->*m_pfnCallWhenMoveDone)();
 }
@@ -687,7 +707,7 @@ void CBaseToggle :: AngularMove( Vector vecDestAngle, float flSpeed )
 	SetThink(&CBaseToggle :: AngularMoveNow );
 	UTIL_DesiredThink( this );
 //	ExternalThink( 0.01 );
-//		pev->nextthink = pev->ltime + 0.01;
+//		SetNextThink(0.01);
 //	}
 //	else
 //	{

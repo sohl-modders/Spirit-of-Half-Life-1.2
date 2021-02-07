@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -44,6 +44,7 @@ class CISlave : public CSquadMonster
 public:
 	void Spawn( void );
 	void Precache( void );
+	void UpdateOnRemove() override;
 	void SetYawSpeed( void );
 	int	 ISoundMask( void );
 	int  Classify ( void );
@@ -51,7 +52,7 @@ public:
 	void HandleAnimEvent( MonsterEvent_t *pEvent );
 	BOOL CheckRangeAttack1 ( float flDot, float flDist );
 	BOOL CheckRangeAttack2 ( float flDot, float flDist );
-	void CallForHelp( char *szClassname, float flDist, EHANDLE hEnemy, Vector &vecLocation );
+	void CallForHelp( const char *szClassname, float flDist, EHANDLE hEnemy, Vector &vecLocation );
 	void TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType);
 	int TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType);
 
@@ -160,7 +161,7 @@ int CISlave::IRelationship( CBaseEntity *pTarget )
 }
 
 
-void CISlave :: CallForHelp( char *szClassname, float flDist, EHANDLE hEnemy, Vector &vecLocation )
+void CISlave :: CallForHelp( const char *szClassname, float flDist, EHANDLE hEnemy, Vector &vecLocation )
 {
 	// ALERT( at_aiconsole, "help " );
 
@@ -583,6 +584,12 @@ void CISlave :: Precache()
 	UTIL_PrecacheOther( "test_effect" );
 }	
 
+void CISlave::UpdateOnRemove()
+{
+	CSquadMonster::UpdateOnRemove();
+
+	ClearBeams();
+}
 
 //=========================================================
 // TakeDamage - get provoked when injured
@@ -596,7 +603,7 @@ int CISlave :: TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, floa
 
 	//LRC - if my player reaction has been overridden, leave this alone
 	if (m_iPlayerReact == 0)
-		m_afMemory |= bits_MEMORY_PROVOKED;
+	m_afMemory |= bits_MEMORY_PROVOKED;
 
 	return CSquadMonster::TakeDamage(pevInflictor, pevAttacker, flDamage, bitsDamageType);
 }

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -39,6 +39,7 @@ cvar_t	teamoverride = {"mp_teamoverride","1" };
 cvar_t	defaultteam = {"mp_defaultteam","0" };
 cvar_t	allowmonsters={"mp_allowmonsters","0", FCVAR_SERVER };
 
+cvar_t  allow_spectators = { "allow_spectators", "0.0", FCVAR_SERVER };		// 0 prevents players from being spectators
 cvar_t	impulsetarget={"sohl_impulsetarget","0", FCVAR_SERVER }; //LRC - trigger ents manually
 cvar_t	mw_debug={"sohl_mwdebug","0", FCVAR_SERVER }; //LRC - debug info. for MoveWith. (probably not useful for most people.)
 
@@ -462,6 +463,7 @@ void GameDLLInit( void )
 	g_footsteps = CVAR_GET_POINTER( "mp_footsteps" );
 
 	CVAR_REGISTER (&displaysoundlist);
+	CVAR_REGISTER( &allow_spectators );
 
 	CVAR_REGISTER (&teamplay);
 	CVAR_REGISTER (&fraglimit);

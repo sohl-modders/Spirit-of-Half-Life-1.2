@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1999, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -20,6 +20,10 @@
 #include "cl_util.h"
 #include "parsemsg.h"
 #include "r_efx.h"
+#include "event_api.h"
+
+#include "particleman.h"
+extern IParticleMan *g_pParticleMan;
 
 //LRC - the fogging fog
 float g_fFogColor[3];
@@ -31,8 +35,14 @@ float g_fFadeDuration; //negative = fading out
 
 #define MAX_CLIENTS 32
 
+#if !defined( _TFC )
 extern BEAM *pBeam;
 extern BEAM *pBeam2;
+#endif 
+
+#if defined( _TFC )
+void ClearEventList( void );
+#endif
 
 /// USER-DEFINED SERVER MESSAGE HANDLERS
 
@@ -96,8 +106,20 @@ void CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
 		pList = pList->pNext;
 	}
 
+#if defined( _TFC )
+	ClearEventList();
+
+	// catch up on any building events that are going on
+	gEngfuncs.pfnServerCmd("sendevents");
+#endif
+
+	if ( g_pParticleMan )
+		 g_pParticleMan->ResetParticles();
+
+#if !defined( _TFC )
 	//Probably not a good place to put this.
 	pBeam = pBeam2 = NULL;
+#endif
 }
 
 //LRC
@@ -243,5 +265,24 @@ int CHud :: MsgFunc_Concuss( const char *pszName, int iSize, void *pbuf )
 		this->m_StatusIcons.EnableIcon("dmg_concuss",255,160,0);
 	else
 		this->m_StatusIcons.DisableIcon("dmg_concuss");
+	return 1;
+}
+
+// In view.cpp
+extern vec3_t v_origin;
+
+int CHud::MsgFunc_Sound2D( const char* name, int size, void* buffer )
+{
+	BEGIN_READ( buffer, size );
+
+	float soundVolume = READ_BYTE() / 255.f;
+	int soundChannel = READ_BYTE();
+	int soundPitch = READ_BYTE();
+	char* soundName = READ_STRING();
+
+	int index = gEngfuncs.GetLocalPlayer()->index;
+
+	gEngfuncs.pEventAPI->EV_PlaySound( index, v_origin, soundChannel, soundName, soundVolume, ATTN_NONE, 0, soundPitch );
+
 	return 1;
 }

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1999, 2000 Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -44,7 +44,7 @@ public:
 	int		Restore( CRestore &restore );
 	static	TYPEDESCRIPTION m_SaveData[];
 	int		ObjectCaps( void ) { return CBaseMonster :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
-
+	
 	void Spawn( void );
 	void Precache( void );
 	int  Classify( void ) { return CLASS_MACHINE; };
@@ -268,7 +268,7 @@ void COsprey :: DeployThink( void )
 	vecSrc = pev->origin + vecForward * -64 + vecRight * -100 + vecUp * -96;
 	m_hRepel[3] = MakeGrunt( vecSrc );
 
-	SetThink(&COsprey :: HoverThink );
+	SetThink( &COsprey::HoverThink );
 	SetNextThink( 0.1 );
 }
 
@@ -319,7 +319,7 @@ CBaseMonster *COsprey :: MakeGrunt( Vector vecSrc )
 			pBeam->PointEntInit( vecSrc + Vector(0,0,112), pGrunt->entindex() );
 			pBeam->SetFlags( BEAM_FSOLID );
 			pBeam->SetColor( 255, 255, 255 );
-			pBeam->SetThink(&CBeam:: SUB_Remove );
+			pBeam->SetThink( &CBeam::SUB_Remove );
 			pBeam->SetNextThink( -4096.0 * tr.flFraction / pGrunt->pev->velocity.z + 0.5 );
 
 			// ALERT( at_console, "%d at %.0f %.0f %.0f\n", i, m_vecOrigin[i].x, m_vecOrigin[i].y, m_vecOrigin[i].z );  
@@ -347,7 +347,7 @@ void COsprey :: HoverThink( void )
 	if (i == 4)
 	{
 		m_startTime = gpGlobals->time;
-		SetThink(&COsprey :: FlyThink );
+		SetThink( &COsprey::FlyThink );
 	}
 
 	SetNextThink( 0.1 );
@@ -394,7 +394,7 @@ void COsprey::UpdateGoal( )
 	}
 	else
 	{
-		ALERT( at_debug, "osprey missing target");
+		ALERT( at_console, "osprey missing target");
 	}
 }
 
@@ -406,7 +406,7 @@ void COsprey::FlyThink( void )
 
 	if ( m_pGoalEnt == NULL && !FStringNull(pev->target) )// this monster has a target
 	{
-		m_pGoalEnt = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
+		m_pGoalEnt = CBaseEntity::Instance( FIND_ENTITY_BY_TARGETNAME ( NULL, STRING( pev->target ) ) );
 		UpdateGoal( );
 	}
 
@@ -414,11 +414,11 @@ void COsprey::FlyThink( void )
 	{
 		if (m_pGoalEnt->pev->speed == 0)
 		{
-			SetThink(&COsprey:: DeployThink );
+			SetThink( &COsprey::DeployThink );
 		}
 		int loopbreaker = 100; //LRC - <slap> don't loop indefinitely!
 		do {
-			m_pGoalEnt = UTIL_FindEntityByTargetname( NULL, STRING( m_pGoalEnt->pev->target ) );
+			m_pGoalEnt = CBaseEntity::Instance( FIND_ENTITY_BY_TARGETNAME ( NULL, STRING( m_pGoalEnt->pev->target ) ) );
 			loopbreaker--; //LRC
 		} while (m_pGoalEnt->pev->speed < 400 && !HasDead() && loopbreaker > 0);
 		UpdateGoal( );
@@ -435,8 +435,6 @@ void COsprey::Flight( )
 	float scale = 1.0 / m_dTime;
 	
 	float f = UTIL_SplineFraction( t * scale, 1.0 );
-
-//	ALERT(at_console, "Osprey setorigin m_pos1 %f, m_vel1 %f, m_pos2 %f, m_vel2 %f, m_dTime %f, t %f, f %f\n", m_pos1.x, m_vel1.x, m_pos2.x, m_vel2.x, m_dTime, t, f);
 
 	Vector pos = (m_pos1 + m_vel1 * t) * (1.0 - f) + (m_pos2 - m_vel2 * (m_dTime - t)) * f;
 	Vector ang = (m_ang1) * (1.0 - f) + (m_ang2) * f;
@@ -540,8 +538,8 @@ void COsprey :: Killed( entvars_t *pevAttacker, int iGib )
 	STOP_SOUND( ENT(pev), CHAN_STATIC, "apache/ap_rotor4.wav" );
 
 	UTIL_SetSize( pev, Vector( -32, -32, -64), Vector( 32, 32, 0) );
-	SetThink(&COsprey :: DyingThink );
-	SetTouch(&COsprey :: CrashTouch );
+	SetThink( &COsprey::DyingThink );
+	SetTouch( &COsprey::CrashTouch );
 	SetNextThink( 0.1 );
 	pev->health = 0;
 	pev->takedamage = DAMAGE_NO;

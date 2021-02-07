@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -12,15 +12,8 @@
 *   without written permission from Valve LLC.
 *
 ****/
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#include "../common/nowin.h"
-
-typedef int BOOL;
-#define TRUE	 1	
-#define FALSE	0
+#include "Platform.h"
 
 // hack into header files that we can ship
 typedef int qboolean;
@@ -146,7 +139,7 @@ void GetEyePosition ( void *pmodel, float *vecEyePosition )
 
 	if ( !pstudiohdr )
 	{
-		ALERT ( at_debug, "GetEyePosition() Can't get pstudiohdr ptr!\n" );
+		ALERT ( at_console, "GetEyePosition() Can't get pstudiohdr ptr!\n" );
 		return;
 	}
 
@@ -321,6 +314,7 @@ int GetAnimationEvent( void *pmodel, entvars_t *pev, MonsterEvent_t *pMonsterEve
 float SetController( void *pmodel, entvars_t *pev, int iController, float flValue )
 {
 	studiohdr_t *pstudiohdr;
+	int i;
 	
 	pstudiohdr = (studiohdr_t *)pmodel;
 	if (! pstudiohdr)
@@ -329,8 +323,7 @@ float SetController( void *pmodel, entvars_t *pev, int iController, float flValu
 	mstudiobonecontroller_t	*pbonecontroller = (mstudiobonecontroller_t *)((byte *)pstudiohdr + pstudiohdr->bonecontrollerindex);
 
 	// find first controller that matches the index
-	int i = 0;
-	for (i = 0; i < pstudiohdr->numbonecontrollers; i++, pbonecontroller++)
+	for ( i = 0; i < pstudiohdr->numbonecontrollers; i++, pbonecontroller++)
 	{
 		if (pbonecontroller->index == iController)
 			break;
@@ -480,7 +473,7 @@ int FindTransition( void *pmodel, int iEndingAnim, int iGoalAnim, int *piDir )
 		}
 	}
 
-	ALERT( at_debug, "error in transition graph" );
+	ALERT( at_console, "error in transition graph" );
 	return iGoalAnim;
 }
 

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -116,7 +116,7 @@ void CGib :: SpawnStickyGibs( entvars_t *pevVictim, Vector vecOrigin, int cGibs 
 			pGib->pev->movetype = MOVETYPE_TOSS;
 			pGib->pev->solid = SOLID_BBOX;
 			UTIL_SetSize ( pGib->pev, Vector ( 0, 0 ,0 ), Vector ( 0, 0, 0 ) );
-			pGib->SetTouch(&CGib:: StickyGibTouch );
+			pGib->SetTouch ( &CGib::StickyGibTouch );
 			pGib->SetThink (NULL);
 		}
 		pGib->LimitVelocity();
@@ -702,7 +702,7 @@ void CBaseEntity :: SUB_StartFadeOut ( void )
 	pev->avelocity = g_vecZero;
 
 	SetNextThink( 0.1 );
-	SetThink(&CBaseEntity :: SUB_FadeOut );
+	SetThink ( &CBaseEntity::SUB_FadeOut );
 }
 
 void CBaseEntity :: SUB_FadeOut ( void  )
@@ -716,7 +716,7 @@ void CBaseEntity :: SUB_FadeOut ( void  )
 	{
 		pev->renderamt = 0;
 		SetNextThink( 0.2 );
-		SetThink(&CBaseEntity :: SUB_Remove );
+		SetThink ( &CBaseEntity::SUB_Remove );
 	}
 }
 
@@ -736,7 +736,7 @@ void CGib :: WaitTillLand ( void )
 
 	if ( pev->velocity == g_vecZero )
 	{
-		SetThink(&CGib ::SUB_StartFadeOut);
+		SetThink (&CGib::SUB_StartFadeOut);
 		SetNextThink( m_lifeTime );
 
 		// If you bleed, you stink!
@@ -789,7 +789,7 @@ void CGib :: BounceGibTouch ( CBaseEntity *pOther )
 			float volume;
 			float zvel = fabs(pev->velocity.z);
 		
-			volume = 0.8 * min(1.0, ((float)zvel) / 450.0);
+			volume = 0.8 * V_min(1.0, ((float)zvel) / 450.0);
 
 			CBreakable::MaterialSoundRandom( edict(), (Materials)m_material, volume );
 		}
@@ -804,7 +804,7 @@ void CGib :: StickyGibTouch ( CBaseEntity *pOther )
 	Vector	vecSpot;
 	TraceResult	tr;
 	
-	SetThink(&CGib :: SUB_Remove );
+	SetThink ( &CGib::SUB_Remove );
 	SetNextThink( 10 );
 
 	if ( !FClassnameIs( pOther->pev, "worldspawn" ) )
@@ -846,8 +846,8 @@ void CGib :: Spawn( const char *szGibModel )
 
 	SetNextThink( 4 );
 	m_lifeTime = 25;
-	SetThink(&CGib :: WaitTillLand );
-	SetTouch(&CGib :: BounceGibTouch );
+	SetThink ( &CGib::WaitTillLand );
+	SetTouch ( &CGib::BounceGibTouch );
 
 	m_material = matNone;
 	m_cBloodDecals = 5;// how many blood decals this gib can place (1 per bounce until none remain). 

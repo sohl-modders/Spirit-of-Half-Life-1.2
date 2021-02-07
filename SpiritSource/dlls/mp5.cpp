@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -38,15 +38,8 @@ enum mp5_e
 
 
 LINK_ENTITY_TO_CLASS( weapon_mp5, CMP5 );
-LINK_ENTITY_TO_CLASS( weapon_9mmAR, CMP5 );
+LINK_WEAPON_TO_CLASS( weapon_9mmAR, CMP5 );
 
-
-//=========================================================
-//=========================================================
-int CMP5::SecondaryAmmoIndex( void )
-{
-	return m_iSecondaryAmmoType;
-}
 
 void CMP5::Spawn( )
 {
@@ -158,9 +151,9 @@ void CMP5::PrimaryAttack()
 	Vector vecDir;
 
 #ifdef CLIENT_DLL
-	if ( !bIsMultiplayer() )
+	if (bIsMultiplayer())
 #else
-	if ( !g_pGameRules->IsMultiplayer() )
+	if (g_pGameRules->IsMultiplayer())
 #endif
 	{
 		// optimized multiplayer. Widened to make it easier to hit a moving player
@@ -185,7 +178,7 @@ void CMP5::PrimaryAttack()
 		// HEV suit - indicate out of ammo condition
 		m_pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
 
-	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.1;
+	m_flNextPrimaryAttack = GetNextAttackDelay(0.1);
 
 	if ( m_flNextPrimaryAttack < UTIL_WeaponTimeBase() )
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.1;
@@ -238,7 +231,7 @@ void CMP5::SecondaryAttack( void )
 
 	PLAYBACK_EVENT( flags, m_pPlayer->edict(), m_usMP52 );
 	
-	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1;
+	m_flNextPrimaryAttack = GetNextAttackDelay(1);
 	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1;
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 5;// idle pretty soon after shooting.
 
@@ -283,7 +276,11 @@ void CMP5::WeaponIdle( void )
 	m_flTimeWeaponIdle = UTIL_SharedRandomFloat( m_pPlayer->random_seed, 10, 15 ); // how long till we do this again.
 }
 
-
+BOOL CMP5::IsUseable()
+{
+	//Can be used if the player has AR grenades. - Solokiller
+	return CBasePlayerWeapon::IsUseable() || m_pPlayer->m_rgAmmo[SecondaryAmmoIndex()] > 0;
+}
 
 class CMP5AmmoClip : public CBasePlayerAmmo
 {

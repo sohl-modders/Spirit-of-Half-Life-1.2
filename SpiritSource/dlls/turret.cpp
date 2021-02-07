@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -56,6 +56,7 @@ class CBaseTurret : public CBaseMonster
 public:
 	void Spawn(void);
 	virtual void Precache(void);
+	void UpdateOnRemove() override;
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT TurretUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	
@@ -259,7 +260,7 @@ void CBaseTurret::Spawn()
 	pev->takedamage		= DAMAGE_AIM;
 
 	SetBits (pev->flags, FL_MONSTER);
-	SetUse(&CBaseTurret:: TurretUse );
+	SetUse( &CBaseTurret::TurretUse );
 
 	if (( pev->spawnflags & SF_MONSTER_TURRET_AUTOACTIVATE ) 
 		 && !( pev->spawnflags & SF_MONSTER_TURRET_STARTINACTIVE ))
@@ -289,6 +290,17 @@ void CBaseTurret::Precache( )
 	PRECACHE_SOUND ("turret/tu_spindown.wav");
 	PRECACHE_SOUND ("turret/tu_search.wav");
 	PRECACHE_SOUND ("turret/tu_alert.wav");
+}
+
+void CBaseTurret::UpdateOnRemove()
+{
+	CBaseMonster::UpdateOnRemove();
+
+	if (m_pEyeGlow)
+	{
+		UTIL_Remove(m_pEyeGlow);
+		m_pEyeGlow = nullptr;
+	}
 }
 
 #define TURRET_GLOW_SPRITE "sprites/flare3.spr"
@@ -469,7 +481,7 @@ void CBaseTurret::EyeOff( )
 	{
 		if (m_eyeBrightness > 0)
 		{
-			m_eyeBrightness = max( 0, m_eyeBrightness - 30 );
+			m_eyeBrightness = V_max( 0, m_eyeBrightness - 30 );
 			m_pEyeGlow->SetBrightness( m_eyeBrightness );
 		}
 	}
@@ -1228,7 +1240,7 @@ int CSentry::TakeDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, float f
 
 	if (!m_iOn)
 	{
-		SetThink(&CSentry:: Deploy );
+		SetThink( &CSentry::Deploy );
 		SetUse( NULL );
 		SetNextThink( 0.1 );
 	}
@@ -1243,7 +1255,7 @@ int CSentry::TakeDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, float f
 		ClearBits (pev->flags, FL_MONSTER); // why are they set in the first place???
 
 		SetUse(NULL);
-		SetThink(&CSentry::SentryDeath);
+		SetThink( &CSentry::SentryDeath);
 		SUB_UseTargets( this, USE_ON, 0 ); // wake up others
 		SetNextThink( 0.1 );
 

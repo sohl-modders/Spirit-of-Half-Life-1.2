@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -143,12 +143,12 @@ void CApache :: Spawn( void )
 
 	if (pev->spawnflags & SF_WAITFORTRIGGER)
 	{
-		SetUse(&CApache :: StartupUse );
+		SetUse( &CApache::StartupUse );
 	}
 	else
 	{
-		SetThink(&CApache :: HuntThink );
-		SetTouch(&CApache :: FlyTouch );
+		SetThink( &CApache::HuntThink );
+		SetTouch( &CApache::FlyTouch );
 		SetNextThink( 1.0 );
 	}
 
@@ -193,8 +193,8 @@ void CApache::NullThink( void )
 
 void CApache::StartupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	SetThink(&CApache:: HuntThink );
-	SetTouch(&CApache:: FlyTouch );
+	SetThink( &CApache::HuntThink );
+	SetTouch( &CApache::FlyTouch );
 	SetNextThink( 0.1 );
 	SetUse( NULL );
 }
@@ -207,8 +207,8 @@ void CApache :: Killed( entvars_t *pevAttacker, int iGib )
 	STOP_SOUND( ENT(pev), CHAN_STATIC, "apache/ap_rotor2.wav" );
 
 	UTIL_SetSize( pev, Vector( -32, -32, -64), Vector( 32, 32, 0) );
-	SetThink(&CApache :: DyingThink );
-	SetTouch(&CApache :: CrashTouch );
+	SetThink( &CApache::DyingThink );
+	SetTouch( &CApache::CrashTouch );
 	SetNextThink( 0.1 );
 	pev->health = 0;
 	pev->takedamage = DAMAGE_NO;
@@ -409,7 +409,7 @@ void CApache :: DyingThink( void )
 			WRITE_BYTE( BREAK_METAL );
 		MESSAGE_END();
 
-		SetThink(&CApache :: SUB_Remove );
+		SetThink( &CApache::SUB_Remove );
 		SetNextThink( 0.1 );
 	}
 }
@@ -819,13 +819,13 @@ BOOL CApache :: FireGun( )
 		angles.x = angles.x + 360;
 
 	if (angles.x > m_angGun.x)
-		m_angGun.x = min( angles.x, m_angGun.x + 12 );
+		m_angGun.x = V_min( angles.x, m_angGun.x + 12 );
 	if (angles.x < m_angGun.x)
-		m_angGun.x = max( angles.x, m_angGun.x - 12 );
+		m_angGun.x = V_max( angles.x, m_angGun.x - 12 );
 	if (angles.y > m_angGun.y)
-		m_angGun.y = min( angles.y, m_angGun.y + 12 );
+		m_angGun.y = V_min( angles.y, m_angGun.y + 12 );
 	if (angles.y < m_angGun.y)
-		m_angGun.y = max( angles.y, m_angGun.y - 12 );
+		m_angGun.y = V_max( angles.y, m_angGun.y - 12 );
 
 	m_angGun.y = SetBoneController( 0, m_angGun.y );
 	m_angGun.x = SetBoneController( 1, m_angGun.x );
@@ -979,8 +979,8 @@ void CApacheHVR :: Spawn( void )
 	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
 	UTIL_SetOrigin( this, pev->origin );
 
-	SetThink(&CApacheHVR :: IgniteThink );
-	SetTouch(&CApacheHVR :: ExplodeTouch );
+	SetThink( &CApacheHVR::IgniteThink );
+	SetTouch( &CApacheHVR::ExplodeTouch );
 
 	UTIL_MakeAimVectors( pev->angles );
 	m_vecForward = gpGlobals->v_forward;
@@ -1026,7 +1026,7 @@ void CApacheHVR :: IgniteThink( void  )
 	MESSAGE_END();  // move PHS/PVS data sending into here (SEND_ALL, SEND_PVS, SEND_PHS)
 
 	// set to accelerate
-	SetThink(&CApacheHVR :: AccelerateThink );
+	SetThink( &CApacheHVR::AccelerateThink );
 	SetNextThink( 0.1 );
 }
 

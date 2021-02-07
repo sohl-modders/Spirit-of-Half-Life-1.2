@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -35,7 +35,7 @@ enum python_e {
 };
 
 LINK_ENTITY_TO_CLASS( weapon_python, CPython );
-LINK_ENTITY_TO_CLASS( weapon_357, CPython );
+LINK_WEAPON_TO_CLASS( weapon_357, CPython );
 
 int CPython::GetItemInfo(ItemInfo *p)
 {
@@ -167,11 +167,9 @@ void CPython::PrimaryAttack()
 
 	if (m_iClip <= 0)
 	{
-		if (!m_fFireOnEmpty)
-			Reload( );
-		else
+		if (m_fFireOnEmpty)
 		{
-			EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_WEAPON, "weapons/357_cock1.wav", 0.8, ATTN_NORM);
+			PlayEmptySound();
 			m_flNextPrimaryAttack = 0.15;
 		}
 
@@ -252,12 +250,12 @@ void CPython::WeaponIdle( void )
 		EMIT_SOUND(ENT(m_pPlayer->pev), CHAN_WEAPON, "weapons/357_reload1.wav", RANDOM_FLOAT(0.8, 0.9), ATTN_NORM);
 		m_flSoundDelay = 0;
 	}
-
+	
 	if (m_flTimeWeaponIdle > UTIL_WeaponTimeBase() )
 		return;
 
 	int iAnim;
-	float flRand = UTIL_SharedRandomFloat( m_pPlayer->random_seed, 10, 15 );
+	float flRand = UTIL_SharedRandomFloat( m_pPlayer->random_seed, 0, 1 );
 	if (flRand <= 0.5)
 	{
 		iAnim = PYTHON_IDLE1;

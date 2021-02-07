@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1999, 2000 Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -33,11 +33,7 @@ static void PlatSpawnInsideTrigger(entvars_t* pevPlatform);
 // BUG BUG This is declared in pm_math.cpp, Linux will spit about it
 // No idea why windows does not pick that up, in fact
 // MSVC will complain it's not delcared if you use extern...
-#ifdef _WIN32
-int nanmask = 255<<23;
-#else
 extern int nanmask;
-#endif
 
 #define	IS_NAN(x) (((*(int *)&x)&nanmask)==nanmask)
 
@@ -312,7 +308,7 @@ public:
 	virtual int	ObjectCaps( void ) { return (CBaseEntity :: ObjectCaps() & ~FCAP_ACROSS_TRANSITION) | FCAP_DONT_SAVE; }
 	void SpawnInsideTrigger( CFuncPlat *pPlatform );
 	void Touch( CBaseEntity *pOther );
-	CFuncPlat *m_pPlatform;
+	EHANDLE m_hPlatform;
 };
 
 
@@ -357,11 +353,14 @@ void CFuncPlat :: Setup( void )
 	  m_vecPosition1 = pev->origin - m_pMoveWith->pev->origin;
 	else
 	  m_vecPosition1 = pev->origin;
+
 	m_vecPosition2 = m_vecPosition1;
+
 	if (m_flHeight != 0)
 		m_vecPosition2.z = m_vecPosition2.z - m_flHeight;
 	else
 		m_vecPosition2.z = m_vecPosition2.z - pev->size.z + 8;
+
 	if (pev->speed == 0)
 		pev->speed = 150;
 
@@ -420,26 +419,29 @@ static void PlatSpawnInsideTrigger(entvars_t* pevPlatform)
 //
 void CPlatTrigger :: SpawnInsideTrigger( CFuncPlat *pPlatform )
 {
-	m_pPlatform = pPlatform;
+	m_hPlatform = pPlatform;
+	
 	// Create trigger entity, "point" it at the owning platform, give it a touch method
 	pev->solid		= SOLID_TRIGGER;
 	pev->movetype	= MOVETYPE_NONE;
 	pev->origin = pPlatform->pev->origin;
 
 	// Establish the trigger field's size
-	Vector vecTMin = m_pPlatform->pev->mins + Vector ( 25 , 25 , 0 );
-	Vector vecTMax = m_pPlatform->pev->maxs + Vector ( 25 , 25 , 8 );
-	vecTMin.z = vecTMax.z - ( m_pPlatform->m_vecPosition1.z - m_pPlatform->m_vecPosition2.z + 8 );
-	if (m_pPlatform->pev->size.x <= 50)
+	Vector vecTMin = pPlatform->pev->mins + Vector(25, 25, 0);
+	Vector vecTMax = pPlatform->pev->maxs + Vector(25, 25, 8);
+	vecTMin.z = vecTMax.z - (pPlatform->m_vecPosition1.z - pPlatform->m_vecPosition2.z + 8);
+	if (pPlatform->pev->size.x <= 50)
 	{
-		vecTMin.x = (m_pPlatform->pev->mins.x + m_pPlatform->pev->maxs.x) / 2;
+		vecTMin.x = (pPlatform->pev->mins.x + pPlatform->pev->maxs.x) / 2;
 		vecTMax.x = vecTMin.x + 1;
 	}
-	if (m_pPlatform->pev->size.y <= 50)
+	
+	if (pPlatform->pev->size.y <= 50)
 	{
-		vecTMin.y = (m_pPlatform->pev->mins.y + m_pPlatform->pev->maxs.y) / 2;
+		vecTMin.y = (pPlatform->pev->mins.y + pPlatform->pev->maxs.y) / 2;
 		vecTMax.y = vecTMin.y + 1;
 	}
+	
 	UTIL_SetSize ( pev, vecTMin, vecTMax );
 }
 
@@ -454,15 +456,24 @@ void CPlatTrigger :: Touch( CBaseEntity *pOther )
 	if ( !FClassnameIs (pevToucher, "player") )
 		return;
 
+	auto pPlatform = EHANDLE_cast<CFuncPlat*>(m_hPlatform);
+
+	if (FNullEnt(pPlatform))
+	{
+		//The target platform has been removed, remove myself as well. - Solokiller
+		UTIL_Remove(this);
+		return;
+	}
+	
 	// Ignore touches by corpses
 	if (!pOther->IsAlive())
 		return;
 	
 	// Make linked platform go up/down.
-	if (m_pPlatform->m_toggle_state == TS_AT_BOTTOM)
-		m_pPlatform->GoUp();
-	else if (m_pPlatform->m_toggle_state == TS_AT_TOP)
-		m_pPlatform->SetNextThink( 1 );// delay going down
+	if (pPlatform->m_toggle_state == TS_AT_BOTTOM)
+		pPlatform->GoUp();
+	else if (pPlatform->m_toggle_state == TS_AT_TOP)
+		pPlatform->SetNextThink(1.0);// delay going down
 }
 
 
@@ -514,7 +525,7 @@ void CFuncPlat :: GoDown( void )
 
 	ASSERT(m_toggle_state == TS_AT_TOP || m_toggle_state == TS_GOING_UP);
 	m_toggle_state = TS_GOING_DOWN;
-	SetMoveDone(&CFuncPlat ::CallHitBottom);
+	SetMoveDone(&CFuncPlat::CallHitBottom);
 	LinearMove(m_vecPosition2, pev->speed);
 }
 
@@ -545,7 +556,7 @@ void CFuncPlat :: GoUp( void )
 	
 	ASSERT(m_toggle_state == TS_AT_BOTTOM || m_toggle_state == TS_GOING_DOWN);
 	m_toggle_state = TS_GOING_UP;
-	SetMoveDone(&CFuncPlat ::CallHitTop);
+	SetMoveDone(&CFuncPlat::CallHitTop);
 	LinearMove(m_vecPosition1, pev->speed);
 }
 
@@ -567,7 +578,7 @@ void CFuncPlat :: HitTop( void )
 	if ( !IsTogglePlat() )
 	{
 		// After a delay, the platform will automatically start going down again.
-		SetThink(&CFuncPlat :: CallGoDown );
+		SetThink( &CFuncPlat::CallGoDown );
 		SetNextThink( 3 );
 	}
 }
@@ -2092,7 +2103,7 @@ void CFuncTrackTrain :: NearestPath( void )
 
 	if ( !pNearest )
 	{
-		ALERT( at_debug, "Can't find a nearby track !!!\n" );
+		ALERT( at_console, "Can't find a nearby track !!!\n" );
 		SetThink(NULL);
 		return;
 	}
@@ -2119,7 +2130,7 @@ void CFuncTrackTrain :: NearestPath( void )
 void CFuncTrackTrain::OverrideReset( void )
 {
 	NextThink( 0.1, FALSE );
-	SetThink(&CFuncTrackTrain:: NearestPath );
+	SetThink( &CFuncTrackTrain::NearestPath );
 }
 
 
@@ -2188,7 +2199,7 @@ void CFuncTrainControls :: Spawn( void )
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	UTIL_SetOrigin( this, pev->origin );
 	
-	SetThink(&CFuncTrainControls :: Find );
+	SetThink(&CFuncTrainControls::Find );
 	SetNextThink( 0 );
 }
 
@@ -2299,8 +2310,8 @@ void CFuncTrackChange :: Spawn( void )
 	}
 
 	EnableUse();
-	pev->nextthink = pev->ltime + 2.0;
-	SetThink(&CFuncTrackChange :: Find );
+	SetNextThink(2.0);
+	SetThink( &CFuncTrackChange::Find );
 	Precache();
 }
 
@@ -2350,8 +2361,8 @@ void CFuncTrackChange :: KeyValue( KeyValueData *pkvd )
 
 void CFuncTrackChange::OverrideReset( void )
 {
-	pev->nextthink = pev->ltime + 1.0;
-	SetThink(&CFuncTrackChange:: Find );
+	SetNextThink(1.0);
+	SetThink( &CFuncTrackChange::Find );
 }
 
 void CFuncTrackChange :: Find( void )
@@ -2420,7 +2431,7 @@ void CFuncTrackChange :: UpdateTrain( Vector &dest )
 	float time;
 	Vector vel = pev->velocity;
 
-	if (m_pfnThink == LinearMoveNow)
+	if (m_pfnThink == &CBaseToggle::LinearMoveNow)
 	{
 		// we're going to do a LinearMoveNow: calculate the velocity it'll have
 		Vector vecDest;
@@ -2475,14 +2486,14 @@ void CFuncTrackChange :: GoDown( void )
 	// If ROTMOVE, move & rotate
 	if ( FBitSet( pev->spawnflags, SF_TRACK_DONT_MOVE ) )
 	{
-		SetMoveDone(&CFuncTrackChange :: CallHitBottom );
+		SetMoveDone( &CFuncTrackChange::CallHitBottom );
 		m_toggle_state = TS_GOING_DOWN;
 		AngularMove( m_start, pev->speed );
 	}
 	else
 	{
 		CFuncPlat :: GoDown();
-		SetMoveDone(&CFuncTrackChange :: CallHitBottom );
+		SetMoveDone( &CFuncTrackChange::CallHitBottom );
 
 		Vector vecDest;
 		if (m_pMoveWith)
@@ -2523,14 +2534,14 @@ void CFuncTrackChange :: GoUp( void )
 	if ( FBitSet( pev->spawnflags, SF_TRACK_DONT_MOVE ) )
 	{
 		m_toggle_state = TS_GOING_UP;
-		SetMoveDone(&CFuncTrackChange :: CallHitTop );
+		SetMoveDone( &CFuncTrackChange::CallHitTop );
 		AngularMove( m_end, pev->speed );
 	}
 	else
 	{
 		// If ROTMOVE, move & rotate
 		CFuncPlat :: GoUp();
-		SetMoveDone(&CFuncTrackChange :: CallHitTop );
+		SetMoveDone( &CFuncTrackChange::CallHitTop );
 		RotMove( m_end, pev->nextthink - pev->ltime );
 	}
 	
@@ -2606,7 +2617,8 @@ void CFuncTrackChange :: HitBottom( void )
 		m_train->SetTrack( m_trackBottom );
 	}
 	SetThink( NULL );
-	pev->nextthink = -1;
+	
+	DontThink();
 
 	UpdateAutoTargets( m_toggle_state );
 
@@ -2628,7 +2640,7 @@ void CFuncTrackChange :: HitTop( void )
 	
 	// Don't let the plat go back down
 	SetThink( NULL );
-	pev->nextthink = -1;
+	DontThink();
 	UpdateAutoTargets( m_toggle_state );
 	EnableUse();
 }
@@ -2785,7 +2797,7 @@ void CGunTarget::Spawn( void )
 
 	if ( pev->spawnflags & FGUNTARGET_START_ON )
 	{
-		SetThink(&CGunTarget:: Start );
+		SetThink( &CGunTarget::Start );
 		SetNextThink( 0.3 );
 	}
 }
@@ -2824,7 +2836,7 @@ void CGunTarget::Next( void )
 		Stop();
 		return;
 	}
-	SetMoveDone(&CGunTarget:: Wait );
+	SetMoveDone( &CGunTarget::Wait );
 	LinearMove( pTarget->pev->origin - (pev->mins + pev->maxs) * 0.5, pev->speed );
 }
 
@@ -2850,7 +2862,7 @@ void CGunTarget::Wait( void )
 	m_flWait = pTarget->GetDelay();
 
 	pev->target = pTarget->pev->target;
-	SetThink(&CGunTarget:: Next );
+	SetThink( &CGunTarget::Next );
 	if (m_flWait != 0)
 	{// -1 wait will wait forever!		
 		SetNextThink( m_flWait );
@@ -3264,3 +3276,5 @@ void CTrainSequence :: StopSequence()
 	}
 	FireTargets(STRING(m_iszTerminate), this, this, USE_TOGGLE, 0);
 }
+
+

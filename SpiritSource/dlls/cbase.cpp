@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -25,9 +25,9 @@
 
 void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd );
 
-extern "C" void PM_Move ( struct playermove_s *ppmove, int server );
-extern "C" void PM_Init ( struct playermove_s *ppmove  );
-extern "C" char PM_FindTextureType( char *name );
+void PM_Move ( struct playermove_s *ppmove, int server );
+void PM_Init ( struct playermove_s *ppmove  );
+char PM_FindTextureType( char *name );
 
 extern Vector VecBModelOrigin( entvars_t* pevBModel );
 extern DLL_GLOBAL Vector		g_vecAttackDir;
@@ -99,10 +99,9 @@ static DLL_FUNCTIONS gFunctionTable =
 
 static void SetObjectCollisionBox( entvars_t *pev );
 
-#ifndef _WIN32
 extern "C" {
-#endif
-int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion )
+
+	int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion )
 {
 	if ( !pFunctionTable || interfaceVersion != INTERFACE_VERSION )
 	{
@@ -126,9 +125,7 @@ int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion )
 	return TRUE;
 }
 
-#ifndef _WIN32
 }
-#endif
 
 
 int DispatchSpawn( edict_t *pent )
@@ -141,7 +138,6 @@ int DispatchSpawn( edict_t *pent )
 		pEntity->pev->absmin = pEntity->pev->origin - Vector(1,1,1);
 		pEntity->pev->absmax = pEntity->pev->origin + Vector(1,1,1);
 
-//		pEntity->InitMoveWith(); //LRC
 		pEntity->Spawn();
 
 		// Try to get the pointer again, in case the spawn function deleted the entity.
@@ -240,13 +236,11 @@ void DispatchUse( edict_t *pentUsed, edict_t *pentOther )
 void DispatchThink( edict_t *pent )
 {
 	CBaseEntity *pEntity = (CBaseEntity *)GET_PRIVATE(pent);
-
 	if (pEntity)
 	{
 		if ( FBitSet( pEntity->pev->flags, FL_DORMANT ) )
 			ALERT( at_error, "Dormant entity %s is thinking!!\n", STRING(pEntity->pev->classname) );
 				
-		//if (pEntity->pev->classname) ALERT(at_console, "DispatchThink %s\n", STRING(pEntity->pev->targetname));
 		pEntity->Think();
 	}
 }
@@ -300,12 +294,13 @@ void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData )
 // different classes with the same global name
 CBaseEntity *FindGlobalEntity( string_t classname, string_t globalname )
 {
-	CBaseEntity *pReturn = UTIL_FindEntityByString( NULL, "globalname", STRING(globalname) );
+	edict_t *pent = FIND_ENTITY_BY_STRING( NULL, "globalname", STRING(globalname) );
+	CBaseEntity *pReturn = CBaseEntity::Instance( pent );
 	if ( pReturn )
 	{
 		if ( !FClassnameIs( pReturn->pev, STRING(classname) ) )
 		{
-			ALERT( at_debug, "Global entity found %s, wrong class %s\n", STRING(globalname), STRING(pReturn->pev->classname) );
+			ALERT( at_console, "Global entity found %s, wrong class %s\n", STRING(globalname), STRING(pReturn->pev->classname) );
 			pReturn = NULL;
 		}
 	}
@@ -385,7 +380,7 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 #if 0
 		if ( pEntity && pEntity->pev->globalname && globalEntity ) 
 		{
-			ALERT( at_debug, "Global %s is %s\n", STRING(pEntity->pev->globalname), STRING(pEntity->pev->model) );
+			ALERT( at_console, "Global %s is %s\n", STRING(pEntity->pev->globalname), STRING(pEntity->pev->model) );
 		}
 #endif
 
@@ -441,7 +436,7 @@ void DispatchObjectCollsionBox( edict_t *pent )
 void SaveWriteFields( SAVERESTOREDATA *pSaveData, const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount )
 {
 	CSave saveHelper( pSaveData );
-	saveHelper.WriteFields( "SWF", pname, pBaseData, pFields, fieldCount );
+	saveHelper.WriteFields( pname, pBaseData, pFields, fieldCount );
 }
 
 
@@ -769,7 +764,11 @@ CBaseEntity *CBaseEntity::GetNextTarget( void )
 {
 	if ( FStringNull( pev->target ) )
 		return NULL;
-	return UTIL_FindEntityByTargetname( NULL, STRING(pev->target));
+	edict_t *pTarget = FIND_ENTITY_BY_TARGETNAME ( NULL, STRING(pev->target) );
+	if ( FNullEnt(pTarget) )
+		return NULL;
+
+	return Instance( pTarget );
 }
 
 // Global Savedata for Delay
@@ -807,9 +806,9 @@ int CBaseEntity::Save( CSave &save )
 	if ( save.WriteEntVars( "ENTVARS", pev ) )
 	{
 		if (pev->targetname)
-			return save.WriteFields( STRING(pev->targetname), "BASE", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+			return save.WriteFields( "BASE", this, m_SaveData, ARRAYSIZE(m_SaveData) );
 		else
-			return save.WriteFields( STRING(pev->classname), "BASE", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+			return save.WriteFields( "BASE", this, m_SaveData, ARRAYSIZE(m_SaveData) );
 	}
 
 	return 0;
@@ -920,7 +919,23 @@ int CBaseEntity :: IsDormant( void )
 
 BOOL CBaseEntity :: IsInWorld( void )
 {
+	#ifdef ADM_LARGE_WORLD
 	// position 
+	if (pev->origin.x >= 32768) return FALSE;
+	if (pev->origin.y >= 32768) return FALSE;
+	if (pev->origin.z >= 32768) return FALSE;
+	if (pev->origin.x <= -32768) return FALSE;
+	if (pev->origin.y <= -32768) return FALSE;
+	if (pev->origin.z <= -32768) return FALSE;
+	// speed
+	if (pev->velocity.x >= 8000) return FALSE;
+	if (pev->velocity.y >= 8000) return FALSE;
+	if (pev->velocity.z >= 8000) return FALSE;
+	if (pev->velocity.x <= -8000) return FALSE;
+	if (pev->velocity.y <= -8000) return FALSE;
+	if (pev->velocity.z <= -8000) return FALSE;
+	#else
+		// position 
 	if (pev->origin.x >= 4096) return FALSE;
 	if (pev->origin.y >= 4096) return FALSE;
 	if (pev->origin.z >= 4096) return FALSE;
@@ -934,6 +949,7 @@ BOOL CBaseEntity :: IsInWorld( void )
 	if (pev->velocity.x <= -2000) return FALSE;
 	if (pev->velocity.y <= -2000) return FALSE;
 	if (pev->velocity.z <= -2000) return FALSE;
+	#endif
 
 	return TRUE;
 }
@@ -984,7 +1000,7 @@ int	CBaseEntity :: DamageDecal( int bitsDamageType )
 
 // NOTE: szName must be a pointer to constant memory, e.g. "monster_class" because the entity
 // will keep a pointer to it after this call.
-CBaseEntity * CBaseEntity::Create( char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner )
+CBaseEntity * CBaseEntity::Create( const char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner )
 {
 	edict_t	*pent;
 	CBaseEntity *pEntity;
@@ -992,7 +1008,7 @@ CBaseEntity * CBaseEntity::Create( char *szName, const Vector &vecOrigin, const 
 	pent = CREATE_NAMED_ENTITY( MAKE_STRING( szName ));
 	if ( FNullEnt( pent ) )
 	{
-		ALERT ( at_debug, "NULL Ent in Create!\n" );
+		ALERT ( at_console, "NULL Ent in Create!\n" );
 		return NULL;
 	}
 	pEntity = Instance( pent );

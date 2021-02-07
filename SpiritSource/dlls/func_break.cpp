@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -202,7 +202,7 @@ void CBreakable::Spawn( void )
 
 	SET_MODEL(ENT(pev), STRING(pev->model) );//set size and link into world.
 
-	SetTouch(&CBreakable:: BreakTouch );
+	SetTouch( &CBreakable::BreakTouch );
 	SetUse(&CBreakable:: BreakUse );
 	if ( FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ) )		// Only break on trigger
 		SetTouch( NULL );
@@ -399,7 +399,6 @@ void CBreakable::Precache( void )
 		pGibName = STRING(m_iszGibModel);
 
 	m_idShard = PRECACHE_MODEL( (char *)pGibName );
-	//ALERT(at_debug,"Breakable: Shard is %d\n",m_idShard);
 
 	// Precache the spawn item's data
 	if ( m_iszSpawnObject )
@@ -414,7 +413,7 @@ void CBreakable::DamageSound( void )
 {
 	int pitch;
 	float fvol;
-	char *rgpsz[6];
+	const char *rgpsz[6];
 	int i;
 	int material = m_Material;
 
@@ -515,7 +514,7 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 		// play creaking sound here.
 		DamageSound();
 
-		SetThink(&CBreakable:: Die );
+		SetThink ( &CBreakable::Die );
 		SetTouch( NULL );
 		
 		if ( m_flDelay == 0 )
@@ -611,7 +610,7 @@ void CBreakable::RespawnThink( void )
 
 void CBreakable::RespawnFadeThink ( void )
 {
-	int newamt = min( pev->renderamt + 50, m_iInitialRenderAmt);
+	int newamt = V_min( pev->renderamt + 50, m_iInitialRenderAmt);
 //	ALERT(at_debug, "FadeThink: %d changed to %d\n",pev->renderamt,newamt);
 	pev->renderamt = newamt;
 	if (pev->renderamt < m_iInitialRenderAmt)
@@ -977,7 +976,7 @@ public:
 	
 	static	TYPEDESCRIPTION m_SaveData[];
 
-	static char *m_soundNames[3];
+	static const char *m_soundNames[3];
 	int		m_lastSound;	// no need to save/restore, just keeps the same sound from playing twice in a row
 	float	m_maxSpeed;
 	float	m_soundTime;
@@ -993,7 +992,7 @@ IMPLEMENT_SAVERESTORE( CPushable, CBreakable );
 
 LINK_ENTITY_TO_CLASS( func_pushable, CPushable );
 
-char *CPushable :: m_soundNames[3] = { "debris/pushbox1.wav", "debris/pushbox2.wav", "debris/pushbox3.wav" };
+const char *CPushable :: m_soundNames[3] = { "debris/pushbox1.wav", "debris/pushbox2.wav", "debris/pushbox3.wav" };
 
 
 void CPushable :: Spawn( void )
@@ -1131,7 +1130,7 @@ void CPushable :: Move( CBaseEntity *pOther, int push )
 	{
 		if ( !(pevToucher->flags & FL_ONGROUND) )	// Don't push away from jumping/falling players unless in water
 		{
-			if ( pev->waterlevel < 1 || pev->watertype <= CONTENT_FLYFIELD)
+			if ( pev->waterlevel < 1 || pev->watertype <= CONTENT_FLYFIELD )
 				return;
 			else 
 				factor = 0.1;

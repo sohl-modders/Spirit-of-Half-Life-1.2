@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -74,7 +74,7 @@ void CWorldItem::Spawn( void )
 
 	if (!pEntity)
 	{
-		ALERT( at_debug, "unable to create world_item %d\n", m_iType );
+		ALERT( at_console, "unable to create world_item %d\n", m_iType );
 	}
 	else
 	{
@@ -151,7 +151,7 @@ CBaseEntity* CItem::Respawn( void )
 
 	UTIL_SetOrigin( this, g_pGameRules->VecItemRespawnSpot( this ) );// blip to whereever you should respawn.
 
-	SetThink(&CItem:: Materialize );
+	SetThink ( &CItem::Materialize );
 	AbsoluteNextThink( g_pGameRules->FlItemRespawnTime( this ) );
 	return this;
 }
@@ -166,7 +166,8 @@ void CItem::Materialize( void )
 		pev->effects |= EF_MUZZLEFLASH;
 	}
 
-	SetTouch(&CItem:: ItemTouch );
+	SetTouch( &CItem::ItemTouch );
+	SetThink(NULL);
 }
 
 #define SF_SUIT_SHORTLOGON		0x0001
@@ -247,7 +248,8 @@ class CItemBattery : public CItem
 				pPlayer->pev->armorvalue += pev->armorvalue;
 			else
 				pPlayer->pev->armorvalue += gSkillData.batteryCapacity;
-			pPlayer->pev->armorvalue = min(pPlayer->pev->armorvalue, MAX_NORMAL_BATTERY);
+
+			pPlayer->pev->armorvalue = V_min(pPlayer->pev->armorvalue, MAX_NORMAL_BATTERY);
 
 			if (pev->noise)
 				EMIT_SOUND( pPlayer->edict(), CHAN_ITEM, STRING(pev->noise), 1, ATTN_NORM ); //LRC

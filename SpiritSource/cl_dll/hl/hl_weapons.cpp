@@ -35,7 +35,9 @@ extern globalvars_t *gpGlobals;
 extern int g_iUser1;
 
 // Pool of client side entities/entvars_t
-static entvars_t	ev[ 32 ];
+//static entvars_t	ev[ 32 ]; //solokiller's stuff
+//Weapons + player entity, from solokiller
+static edict_t entities[MAX_WEAPONS + 1];
 static int			num_ents = 0;
 
 // The entity we'll use to represent the local client
@@ -44,13 +46,15 @@ static CBasePlayer	player;
 // Local version of game .dll global variables ( time, etc. )
 static globalvars_t	Globals; 
 
-static CBasePlayerWeapon *g_pWpns[ 32 ];
+//static CBasePlayerWeapon *g_pWpns[ 32 ]; //solokiller's stuff
+static CBasePlayerWeapon* g_pWpns[MAX_WEAPONS];
 int g_iWaterLevel; //LRC - for DMC fog
 float g_flApplyVel = 0.0;
 int   g_irunninggausspred = 0;
 
 vec3_t previousorigin;
 
+/* solokiller's stuff
 // HLDM Weapon placeholder entities.
 CGlock g_Glock;
 CCrowbar g_Crowbar;
@@ -66,7 +70,7 @@ CHandGrenade g_HandGren;
 CSatchel g_Satchel;
 CTripmine g_Tripmine;
 CSqueak g_Snark;
-
+*/
 
 /*
 ======================
@@ -75,7 +79,7 @@ AlertMessage
 Print debug messages to console
 ======================
 */
-void AlertMessage( ALERT_TYPE atype, char *szFmt, ... )
+void AlertMessage( ALERT_TYPE atype, const char *szFmt, ... )
 {
 	va_list		argptr;
 	static char	string[1024];
@@ -87,6 +91,21 @@ void AlertMessage( ALERT_TYPE atype, char *szFmt, ... )
 	gEngfuncs.Con_Printf( "cl:  " );
 	gEngfuncs.Con_Printf( string );
 }
+//solokiller's stuff
+void* PvAllocEntPrivateData(edict_t* pEdict, int32 cb)
+{
+	//Not quite the same as the engine's version, but good enough for what we need
+	if (pEdict->pvPrivateData)
+	{
+		delete[] pEdict->pvPrivateData;
+	}
+
+	pEdict->pvPrivateData = new byte[cb];
+
+	memset(pEdict->pvPrivateData, 0, cb);
+
+	return pEdict->pvPrivateData;
+}
 
 //Returns if it's multiplayer.
 //Mostly used by the client side weapons.
@@ -95,38 +114,67 @@ bool bIsMultiplayer ( void )
 	return gEngfuncs.GetMaxClients() == 1 ? 0 : 1;
 }
 //Just loads a v_ model.
-void LoadVModel ( char *szViewModel, CBasePlayer *m_pPlayer )
+void LoadVModel ( const char *szViewModel, CBasePlayer *m_pPlayer )
 {
 	gEngfuncs.CL_LoadModel( szViewModel, &m_pPlayer->pev->viewmodel );
+}
+
+edict_t* HUD_AllocEdict()
+{
+	edict_t* pEdict = &entities[ num_ents++ ];
+	memset( pEdict, 0, sizeof( edict_t ) );
+
+	//Needed so debug code doesn't assert
+	pEdict->v.pContainingEntity = pEdict;
+
+	return pEdict;
+}
+
+
+void HUD_PrepWeapon(CWeaponRegistry* pReg, CBasePlayer* pWeaponOwner)
+{
+
+	edict_t* pEdict = HUD_AllocEdict();
+
+	//Minor memory leak, doesn't make any difference compared to SDK code though
+	CBasePlayerWeapon* pEntity = pReg->GetFactory()(&pEdict->v);
+
+	pEntity->pev = &pEdict->v;
+
+	pEntity->pev->classname = MAKE_STRING(pReg->GetMapName());
+
+	pEntity->Precache();
+	pEntity->Spawn();
+
+		if(pWeaponOwner)
+		{
+			ItemInfo info;
+
+			pEntity->m_pPlayer = pWeaponOwner;
+
+			pEntity->GetItemInfo(&info);
+
+			g_pWpns[info.iId] = pEntity;
+		}
 }
 
 /*
 =====================
 HUD_PrepEntity
-
-Links the raw entity to an entvars_s holder.  If a player is passed in as the owner, then
-we set up the m_pPlayer field.
+Links the raw entity to an entvars_s holder.
 =====================
 */
-void HUD_PrepEntity( CBaseEntity *pEntity, CBasePlayer *pWeaponOwner )
+void HUD_PrepEntity(CBaseEntity* pEntity)
 {
-	memset( &ev[ num_ents ], 0, sizeof( entvars_t ) );
-	pEntity->pev = &ev[ num_ents++ ];
+	pEntity->pev = &HUD_AllocEdict()->v;
+
+	//Don't do this so we don't try to free statically allocated data
+	//pEntity->pev->pContainingEntity->pvPrivateData = pEntity;
 
 	pEntity->Precache();
 	pEntity->Spawn();
-
-	if ( pWeaponOwner )
-	{
-		ItemInfo info;
-		
-		((CBasePlayerWeapon *)pEntity)->m_pPlayer = pWeaponOwner;
-		
-		((CBasePlayerWeapon *)pEntity)->GetItemInfo( &info );
-
-		g_pWpns[ info.iId ] = (CBasePlayerWeapon *)pEntity;
-	}
 }
+
 
 /*
 =====================
@@ -151,7 +199,7 @@ BOOL CBasePlayerWeapon :: DefaultReload( int iClipSize, int iAnim, float fDelay,
 	if (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0)
 		return FALSE;
 
-	int j = min(iClipSize - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);	
+	int j = V_min(iClipSize - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);	
 
 	if (j == 0)
 		return FALSE;
@@ -215,7 +263,7 @@ CBasePlayerWeapon :: DefaultDeploy
 
 =====================
 */
-BOOL CBasePlayerWeapon :: DefaultDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt, int skiplocal, int	body )
+BOOL CBasePlayerWeapon :: DefaultDeploy(const char *szViewModel, const char *szWeaponModel, int iAnim, const char *szAnimExt, int skiplocal, int	body )
 {
 	if ( !CanDeploy() )
 		return FALSE;
@@ -335,7 +383,7 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 	{
 #if 0 // FIXME, need ammo on client to make this work right
 		// complete the reload. 
-		int j = min( iMaxClip() - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);	
+		int j = V_min( iMaxClip() - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);	
 
 		// Add them to the clip
 		m_iClip += j;
@@ -618,6 +666,7 @@ void HUD_InitClientWeapons( void )
 	// Handled locally
 	g_engfuncs.pfnPlaybackEvent		= HUD_PlaybackEvent;
 	g_engfuncs.pfnAlertMessage		= AlertMessage;
+	g_engfuncs.pfnPvAllocEntPrivateData = PvAllocEntPrivateData; //solokiller stuff
 
 	// Pass through to engine
 	g_engfuncs.pfnPrecacheEvent		= gEngfuncs.pfnPrecacheEvent;
@@ -625,23 +674,13 @@ void HUD_InitClientWeapons( void )
 	g_engfuncs.pfnRandomLong		= gEngfuncs.pfnRandomLong;
 
 	// Allocate a slot for the local player
-	HUD_PrepEntity( &player		, NULL );
+	HUD_PrepEntity(&player);
 
 	// Allocate slot(s) for each weapon that we are going to be predicting
-	HUD_PrepEntity( &g_Glock	, &player );
-	HUD_PrepEntity( &g_Crowbar	, &player );
-	HUD_PrepEntity( &g_Python	, &player );
-	HUD_PrepEntity( &g_Mp5	, &player );
-	HUD_PrepEntity( &g_Crossbow	, &player );
-	HUD_PrepEntity( &g_Shotgun	, &player );
-	HUD_PrepEntity( &g_Rpg	, &player );
-	HUD_PrepEntity( &g_Gauss	, &player );
-	HUD_PrepEntity( &g_Egon	, &player );
-	HUD_PrepEntity( &g_HGun	, &player );
-	HUD_PrepEntity( &g_HandGren	, &player );
-	HUD_PrepEntity( &g_Satchel	, &player );
-	HUD_PrepEntity( &g_Tripmine	, &player );
-	HUD_PrepEntity( &g_Snark	, &player );
+	for (CWeaponRegistry* pReg = CWeaponRegistry::GetHead(); pReg; pReg = pReg->GetNext())
+	{
+		HUD_PrepWeapon(pReg, &player);
+	}
 }
 
 /*
@@ -705,63 +744,9 @@ void HUD_WeaponsPostThink( local_state_s *from, local_state_s *to, usercmd_t *cm
 
 	// Fill in data based on selected weapon
 	// FIXME, make this a method in each weapon?  where you pass in an entity_state_t *?
-	switch ( from->client.m_iId )
+	if (from->client.m_iId > 0 && from->client.m_iId < MAX_WEAPONS)
 	{
-		case WEAPON_CROWBAR:
-			pWeapon = &g_Crowbar;
-			break;
-		
-		case WEAPON_GLOCK:
-			pWeapon = &g_Glock;
-			break;
-		
-		case WEAPON_PYTHON:
-			pWeapon = &g_Python;
-			break;
-			
-		case WEAPON_MP5:
-			pWeapon = &g_Mp5;
-			break;
-
-		case WEAPON_CROSSBOW:
-			pWeapon = &g_Crossbow;
-			break;
-
-		case WEAPON_SHOTGUN:
-			pWeapon = &g_Shotgun;
-			break;
-
-		case WEAPON_RPG:
-			pWeapon = &g_Rpg;
-			break;
-
-		case WEAPON_GAUSS:
-			pWeapon = &g_Gauss;
-			break;
-
-		case WEAPON_EGON:
-			pWeapon = &g_Egon;
-			break;
-
-		case WEAPON_HORNETGUN:
-			pWeapon = &g_HGun;
-			break;
-
-		case WEAPON_HANDGRENADE:
-			pWeapon = &g_HandGren;
-			break;
-
-		case WEAPON_SATCHEL:
-			pWeapon = &g_Satchel;
-			break;
-
-		case WEAPON_TRIPMINE:
-			pWeapon = &g_Tripmine;
-			break;
-
-		case WEAPON_SNARK:
-			pWeapon = &g_Snark;
-			break;
+		pWeapon = g_pWpns[from->client.m_iId];
 	}
 
 	// Store pointer to our destination entity_state_t so we can get our origin, etc. from it
@@ -874,7 +859,7 @@ void HUD_WeaponsPostThink( local_state_s *from, local_state_s *to, usercmd_t *cm
 		 ( ( CRpg * )player.m_pActiveItem)->m_cActiveRockets = (int)from->client.vuser2[ 2 ];
 	}
 	
-	// Don't go firing anything if we have died.
+	// Don't go firing anything if we have died or are spectating
 	// Or if we don't have a weapon model deployed
 	if ( ( player.pev->deadflag != ( DEAD_DISCARDBODY + 1 ) ) && 
 		 !CL_IsDead() && player.pev->viewmodel && !g_iUser1 )
@@ -949,12 +934,12 @@ void HUD_WeaponsPostThink( local_state_s *from, local_state_s *to, usercmd_t *cm
 		int body = 2;
 
 		//Pop the model to body 0.
-		if ( pWeapon == &g_Tripmine )
-			 body = 0;
+		if (FClassnameIs(pWeapon->pev, "weapon_tripmine")) //solokiller
+			body = 0;
 
 		//Show laser sight/scope combo
-		if ( pWeapon == &g_Python && bIsMultiplayer() )
-			 body = 1;
+		if (FClassnameIs(pWeapon->pev, "weapon_357") && bIsMultiplayer()) //solokiller
+			body = 1;
 		
 		// Force a fixed anim down to viewmodel
 		HUD_SendWeaponAnim( to->client.weaponanim, body, 1 );
@@ -1074,8 +1059,10 @@ runfuncs is 1 if this is the first time we've predicted this command.  If so, so
 be ignored
 =====================
 */
-void _DLLEXPORT HUD_PostRunCmd( struct local_state_s *from, struct local_state_s *to, struct usercmd_s *cmd, int runfuncs, double time, unsigned int random_seed )
+void DLLEXPORT HUD_PostRunCmd( struct local_state_s *from, struct local_state_s *to, struct usercmd_s *cmd, int runfuncs, double time, unsigned int random_seed )
 {
+//	RecClPostRunCmd(from, to, cmd, runfuncs, time, random_seed);
+
 	g_runfuncs = runfuncs;
 
 #if defined( CLIENT_WEAPONS )

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -39,7 +39,7 @@ enum rpg_e {
 	RPG_FIDGET_UL,	// unloaded fidget
 };
 
-LINK_ENTITY_TO_CLASS( weapon_rpg, CRpg );
+LINK_WEAPON_TO_CLASS( weapon_rpg, CRpg );
 
 #ifndef CLIENT_DLL
 
@@ -127,9 +127,9 @@ CRpgRocket *CRpgRocket::CreateRpgRocket( Vector vecOrigin, Vector vecAngles, CBa
 	UTIL_SetOrigin( pRocket, vecOrigin );
 	pRocket->pev->angles = vecAngles;
 	pRocket->Spawn();
-	pRocket->SetTouch(& CRpgRocket::RocketTouch );
-	pRocket->m_pLauncher = pLauncher;// remember what RPG fired me. 
-	pRocket->m_pLauncher->m_cActiveRockets++;// register this missile as active for the launcher
+	pRocket->SetTouch( &CRpgRocket::RocketTouch );
+	pRocket->m_hLauncher = pLauncher;// remember what RPG fired me. 
+	pLauncher->m_cActiveRockets++;// register this missile as active for the launcher
 	pRocket->pev->owner = pOwner->edict();
 
 	return pRocket;
@@ -150,8 +150,8 @@ void CRpgRocket :: Spawn( void )
 
 	pev->classname = MAKE_STRING("rpg_rocket");
 
-	SetThink(&CRpgRocket :: IgniteThink );
-	SetTouch(&CRpgRocket :: ExplodeTouch );
+	SetThink( &CRpgRocket::IgniteThink );
+	SetTouch( &CRpgRocket::ExplodeTouch );
 
 	pev->angles.x -= 30;
 	UTIL_MakeVectors( pev->angles );
@@ -169,10 +169,10 @@ void CRpgRocket :: Spawn( void )
 //=========================================================
 void CRpgRocket :: RocketTouch ( CBaseEntity *pOther )
 {
-	if ( m_pLauncher )
+	if (CRpg* pLauncher = static_cast<CRpg*>(static_cast<CBaseEntity*>(m_hLauncher)))
 	{
 		// my launcher is still around, tell it I'm dead.
-		m_pLauncher->m_cActiveRockets--;
+		pLauncher->m_cActiveRockets--;
 	}
 
 	STOP_SOUND( edict(), CHAN_VOICE, "weapons/rocket1.wav" );
@@ -217,7 +217,7 @@ void CRpgRocket :: IgniteThink( void  )
 	m_flIgniteTime = gpGlobals->time;
 
 	// set to follow laser spot
-	SetThink(&CRpgRocket :: FollowThink );
+	SetThink( &CRpgRocket::FollowThink );
 	SetNextThink( 0.1 );
 }
 
@@ -322,7 +322,7 @@ void CRpg::Reload( void )
 	// Set the next attack time into the future so that WeaponIdle will get called more often
 	// than reload, allowing the RPG LTD to be updated
 	
-	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.5;
+	m_flNextPrimaryAttack = GetNextAttackDelay(0.5);
 
 	if ( m_cActiveRockets && m_fSpotActive )
 	{
@@ -496,7 +496,7 @@ void CRpg::PrimaryAttack()
 
 		m_iClip--; 
 				
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.5;
+		m_flNextPrimaryAttack = GetNextAttackDelay(1.5);
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.5;
 	}
 	else
@@ -527,8 +527,6 @@ void CRpg::WeaponIdle( void )
 {
 	UpdateSpot( );
 
-	ResetEmptySound( );
-
 	if ( m_flTimeWeaponIdle > UTIL_WeaponTimeBase() )
 		return;
 
@@ -555,6 +553,7 @@ void CRpg::WeaponIdle( void )
 			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 3.0;
 		}
 
+		ResetEmptySound();
 		SendWeaponAnim( iAnim );
 	}
 	else

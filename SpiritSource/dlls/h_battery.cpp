@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -189,7 +189,7 @@ void CRecharge::Recharge(void)
 	//LRC
 	if (m_iStyle >= 32) LIGHT_STYLE(m_iStyle, "a");
 	else if (m_iStyle <= -32) LIGHT_STYLE(-m_iStyle, "z");
-	SetThink(&CRecharge:: SUB_DoNothing );
+	SetThink( &CRecharge::SUB_DoNothing );
 }
 
 void CRecharge::Off(void)
@@ -206,7 +206,7 @@ void CRecharge::Off(void)
 		SetThink(&CRecharge::Recharge);
 	}
 	else
-		SetThink(&CRecharge:: SUB_DoNothing );
+		SetThink( &CRecharge::SUB_DoNothing );
 }
 
 STATE CRecharge::GetState( void )

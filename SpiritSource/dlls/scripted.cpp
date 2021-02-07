@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1999, 2000 Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -293,7 +293,7 @@ void CCineMonster :: Touch( CBaseEntity *pOther )
 //
 void CCineMonster :: Die( void )
 {
-	SetThink(&CCineMonster :: SUB_Remove );
+	SetThink( &CCineMonster::SUB_Remove );
 }
 
 //
@@ -626,9 +626,6 @@ int	CCineMonster::IgnoreConditions( void )
 {
 	if ( CanInterrupt() )
 		return 0;
-
-	// Big fat BUG: This is an IgnoreConditions function - we need to return the conditions
-	// that _shouldn't_ be able to break the script, instead of the conditions that _should_!!
 	return SCRIPT_BREAK_CONDITIONS;
 }
 
@@ -684,7 +681,7 @@ void CCineMonster :: CancelScript( void )
 }
 
 
-// find all the cinematic entities with my targetname and tell them whether to wait before starting
+// find all the cinematic entities with my targetname and tell them to wait before starting
 void CCineMonster :: DelayStart( int state )
 {
 	CBaseEntity *pCine = UTIL_FindEntityByTargetname(NULL, STRING(pev->targetname));
@@ -1108,7 +1105,7 @@ void CScriptedSentence :: DelayThink( void )
 	m_active = TRUE;
 	if ( !pev->targetname )
 		SetNextThink( 0.1 );
-	SetThink(&CScriptedSentence :: FindThink );
+	SetThink( &CScriptedSentence::FindThink );
 }
 
 
@@ -1176,7 +1173,7 @@ BOOL CScriptedSentence :: StartSentence( CBaseMonster *pTarget )
 	if ( !pTarget )
 	{
 		ALERT( at_aiconsole, "Not Playing sentence %s\n", STRING(m_iszSentence) );
-		return NULL;
+		return FALSE;
 	}
 
 	BOOL bConcurrent = FALSE;
@@ -1231,7 +1228,7 @@ LINK_ENTITY_TO_CLASS( monster_furniture, CFurniture );
 //=========================================================
 void CFurniture :: Die ( void )
 {
-	SetThink(&CFurniture :: SUB_Remove );
+	SetThink ( &CFurniture::SUB_Remove );
 	SetNextThink( 0 );
 }
 

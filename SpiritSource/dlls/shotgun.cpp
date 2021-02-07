@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -39,7 +39,7 @@ enum shotgun_e {
 	SHOTGUN_IDLE_DEEP
 };
 
-LINK_ENTITY_TO_CLASS( weapon_shotgun, CShotgun );
+LINK_WEAPON_TO_CLASS( weapon_shotgun, CShotgun );
 
 void CShotgun::Spawn( )
 {
@@ -122,7 +122,7 @@ void CShotgun::PrimaryAttack()
 	if (m_pPlayer->pev->waterlevel == 3 && m_pPlayer->pev->watertype > CONTENT_FLYFIELD)
 	{
 		PlayEmptySound( );
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15;
+		m_flNextPrimaryAttack = GetNextAttackDelay(0.15);
 		return;
 	}
 
@@ -175,10 +175,9 @@ void CShotgun::PrimaryAttack()
 		// HEV suit - indicate out of ammo condition
 		m_pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
 
-	if (m_iClip != 0)
-		m_flPumpTime = gpGlobals->time + 0.5;
+	m_flPumpTime = gpGlobals->time + 0.5;
 
-	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.75;
+	m_flNextPrimaryAttack = GetNextAttackDelay(0.75);
 	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.75;
 	if (m_iClip != 0)
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 5.0;
@@ -194,7 +193,7 @@ void CShotgun::SecondaryAttack( void )
 	if (m_pPlayer->pev->waterlevel == 3 && m_pPlayer->pev->watertype > CONTENT_FLYFIELD)
 	{
 		PlayEmptySound( );
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15;
+		m_flNextPrimaryAttack = GetNextAttackDelay(0.15);
 		return;
 	}
 
@@ -249,10 +248,9 @@ void CShotgun::SecondaryAttack( void )
 		// HEV suit - indicate out of ammo condition
 		m_pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0);
 
-	if (m_iClip != 0)
-		m_flPumpTime = gpGlobals->time + 0.95;
+	m_flPumpTime = gpGlobals->time + 0.95;
 
-	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.5;
+	m_flNextPrimaryAttack = GetNextAttackDelay(1.5);
 	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.5;
 	if (m_iClip != 0)
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 6.0;
@@ -280,7 +278,7 @@ void CShotgun::Reload( void )
 		m_fInSpecialReload = 1;
 		m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + 0.6;
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.6;
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.0;
+		m_flNextPrimaryAttack = GetNextAttackDelay(1.0);
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.0;
 		return;
 	}
@@ -316,13 +314,6 @@ void CShotgun::WeaponIdle( void )
 	ResetEmptySound( );
 
 	m_pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES );
-
-	if ( m_flPumpTime && m_flPumpTime < gpGlobals->time )
-	{
-		// play pumping sound
-		EMIT_SOUND_DYN(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/scock1.wav", 1, ATTN_NORM, 0, 95 + RANDOM_LONG(0,0x1f));
-		m_flPumpTime = 0;
-	}
 
 	if (m_flTimeWeaponIdle <  UTIL_WeaponTimeBase() )
 	{
@@ -371,7 +362,17 @@ void CShotgun::WeaponIdle( void )
 	}
 }
 
+void CShotgun::ItemPostFrame()
+{
+	if (m_flPumpTime && m_flPumpTime < gpGlobals->time)
+	{
+		// play pumping sound
+		EMIT_SOUND_DYN(ENT(m_pPlayer->pev), CHAN_ITEM, "weapons/scock1.wav", 1, ATTN_NORM, 0, 95 + RANDOM_LONG(0, 0x1f));
+		m_flPumpTime = 0;
+	}
 
+	CBasePlayerWeapon::ItemPostFrame();
+}
 
 class CShotgunAmmo : public CBasePlayerAmmo
 {

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -45,6 +45,7 @@ class CTripmineGrenade : public CGrenade
 {
 	void Spawn( void );
 	void Precache( void );
+	void UpdateOnRemove() override;
 
 	virtual int		Save( CSave &save );
 	virtual int		Restore( CRestore &restore );
@@ -120,7 +121,7 @@ void CTripmineGrenade :: Spawn( void )
 		m_flPowerUp = gpGlobals->time + 2.5;
 	}
 
-	SetThink(&CTripmineGrenade :: PowerupThink );
+	SetThink( &CTripmineGrenade::PowerupThink );
 	SetNextThink( 0.2 );
 
 	pev->takedamage = DAMAGE_YES;
@@ -151,6 +152,12 @@ void CTripmineGrenade :: Precache( void )
 	PRECACHE_SOUND("weapons/mine_charge.wav");
 }
 
+void CTripmineGrenade::UpdateOnRemove()
+{
+	CGrenade::UpdateOnRemove();
+
+	KillBeam();
+}
 
 void CTripmineGrenade :: WarningThink( void  )
 {
@@ -158,7 +165,7 @@ void CTripmineGrenade :: WarningThink( void  )
 	// EMIT_SOUND( ENT(pev), CHAN_VOICE, "buttons/Blip2.wav", 1.0, ATTN_NORM );
 
 	// set to power up
-	SetThink(&CTripmineGrenade :: PowerupThink );
+	SetThink( &CTripmineGrenade::PowerupThink );
 	SetNextThink( 1.0 );
 }
 
@@ -191,9 +198,9 @@ void CTripmineGrenade :: PowerupThink( void  )
 		{
 			STOP_SOUND( ENT(pev), CHAN_VOICE, "weapons/mine_deploy.wav" );
 			STOP_SOUND( ENT(pev), CHAN_BODY, "weapons/mine_charge.wav" );
-			SetThink(&CTripmineGrenade :: SUB_Remove );
+			SetThink(&CTripmineGrenade::SUB_Remove );
 			SetNextThink( 0.1 );
-			ALERT( at_debug, "WARNING:Tripmine at %.0f, %.0f, %.0f removed\n", pev->origin.x, pev->origin.y, pev->origin.z );
+			ALERT( at_console, "WARNING:Tripmine at %.0f, %.0f, %.0f removed\n", pev->origin.x, pev->origin.y, pev->origin.z );
 			KillBeam();
 			return;
 		}
@@ -206,7 +213,7 @@ void CTripmineGrenade :: PowerupThink( void  )
 		CBaseEntity *pMine = Create( "weapon_tripmine", pev->origin + m_vecDir * 24, pev->angles );
 		pMine->pev->spawnflags |= SF_NORESPAWN;
 
-		SetThink(&CTripmineGrenade :: SUB_Remove );
+		SetThink( &CTripmineGrenade::SUB_Remove );
 		KillBeam();
 		SetNextThink( 0.1 );
 		return;
@@ -249,7 +256,7 @@ void CTripmineGrenade :: MakeBeam( void )
 	m_flBeamLength = tr.flFraction;
 
 	// set to follow laser spot
-	SetThink(&CTripmineGrenade :: BeamBreakThink );
+	SetThink( &CTripmineGrenade::BeamBreakThink );
 	SetNextThink( 0.1 );
 
 	Vector vecTmpEnd = pev->origin + m_vecDir * 2048 * m_flBeamLength;
@@ -317,7 +324,7 @@ int CTripmineGrenade :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttac
 	{
 		// disable
 		// Create( "weapon_tripmine", pev->origin + m_vecDir * 24, pev->angles );
-		SetThink(&CTripmineGrenade :: SUB_Remove );
+		SetThink( &CTripmineGrenade::SUB_Remove );
 		SetNextThink( 0.1 );
 		KillBeam();
 		return FALSE;
@@ -335,7 +342,7 @@ void CTripmineGrenade::Killed( entvars_t *pevAttacker, int iGib )
 		pev->owner = ENT( pevAttacker );
 	}
 
-	SetThink(&CTripmineGrenade:: DelayDeathThink );
+	SetThink( &CTripmineGrenade::DelayDeathThink );
 	SetNextThink( RANDOM_FLOAT( 0.1, 0.3 ) );
 
 	EMIT_SOUND( ENT(pev), CHAN_BODY, "common/null.wav", 0.5, ATTN_NORM ); // shut off chargeup
@@ -352,7 +359,7 @@ void CTripmineGrenade::DelayDeathThink( void )
 }
 #endif
 
-LINK_ENTITY_TO_CLASS( weapon_tripmine, CTripmine );
+LINK_WEAPON_TO_CLASS( weapon_tripmine, CTripmine );
 
 void CTripmine::Spawn( )
 {
@@ -407,7 +414,7 @@ int CTripmine::GetItemInfo(ItemInfo *p)
 
 BOOL CTripmine::Deploy( )
 {
-	//pev->body = 0;
+	pev->body = 0;
 	return DefaultDeploy( "models/v_tripmine.mdl", "models/p_tripmine.mdl", TRIPMINE_DRAW, "trip" );
 }
 
@@ -420,7 +427,7 @@ void CTripmine::Holster( int skiplocal /* = 0 */ )
 	{
 		// out of mines
 		m_pPlayer->pev->weapons &= ~(1<<WEAPON_TRIPMINE);
-		SetThink(&CTripmine:: DestroyItem );
+		SetThink( &CTripmine::DestroyItem );
 		SetNextThink( 0.1 );
 	}
 
@@ -481,7 +488,7 @@ void CTripmine::PrimaryAttack( void )
 
 	}
 	
-	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.3;
+	m_flNextPrimaryAttack = GetNextAttackDelay(0.3);
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + UTIL_SharedRandomFloat( m_pPlayer->random_seed, 10, 15 );
 }
 

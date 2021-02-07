@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -266,9 +266,9 @@ void CTentacle :: Spawn( )
 	
 	m_bloodColor		= BLOOD_COLOR_GREEN;
 
-	SetThink(&CTentacle :: Start );
-	SetTouch(&CTentacle :: HitTouch );
-	SetUse(&CTentacle :: CommandUse );
+	SetThink( &CTentacle::Start );
+	SetTouch( &CTentacle::HitTouch );
+	SetUse( &CTentacle::CommandUse );
 
 	SetNextThink( 0.2 );
 
@@ -516,7 +516,7 @@ void CTentacle :: Cycle( void )
 		if (m_flSoundTime < gpGlobals->time)
 		{
 			// play "I hear new something" sound
-			char *sound;	
+			const char *sound;	
 
 			switch( RANDOM_LONG(0,1) )
 			{
@@ -612,7 +612,7 @@ void CTentacle :: Cycle( void )
 				if (m_flNextSong < gpGlobals->time)
 				{
 					// play "I hear new something" sound
-					char *sound;	
+					const char *sound;	
 
 					switch( RANDOM_LONG(0,1) )
 					{
@@ -715,7 +715,7 @@ void CTentacle::CommandUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	{
 	case USE_OFF:
 		pev->takedamage = DAMAGE_NO;
-		SetThink(&CTentacle:: DieThink );
+		SetThink( &CTentacle::DieThink );
 		m_iGoalAnim = TENTACLE_ANIM_Engine_Death1;
 		break;
 	case USE_ON:
@@ -729,7 +729,7 @@ void CTentacle::CommandUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 		break;
 	case USE_TOGGLE:
 		pev->takedamage = DAMAGE_NO;
-		SetThink(&CTentacle:: DieThink );
+		SetThink( &CTentacle::DieThink );
 		m_iGoalAnim = TENTACLE_ANIM_Engine_Idle;
 		break;
 	}
@@ -814,7 +814,7 @@ void CTentacle :: DieThink( void )
 
 void CTentacle :: HandleAnimEvent( MonsterEvent_t *pEvent )
 {
-	char *sound;
+	const char *sound;
 
 	switch( pEvent->event )
 	{
@@ -927,7 +927,7 @@ void CTentacle :: HandleAnimEvent( MonsterEvent_t *pEvent )
 // void CTentacle :: Start( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 void CTentacle :: Start( void )
 {
-	SetThink(&CTentacle :: Cycle );
+	SetThink( &CTentacle::Cycle );
 
 	if ( !g_fFlySound )
 	{

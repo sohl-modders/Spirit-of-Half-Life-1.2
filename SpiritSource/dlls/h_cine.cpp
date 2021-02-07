@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -32,7 +32,7 @@
 class CLegacyCineMonster : public CBaseMonster
 {
 public:
-	void CineSpawn( char *szModel );
+	void CineSpawn( const char *szModel );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT CineThink( void );
 	void Pain( void );
@@ -102,7 +102,7 @@ LINK_ENTITY_TO_CLASS( monster_cine3_barney, CCine3Barney );
 // ********** Scientist SPAWN **********
 //
 
-void CLegacyCineMonster :: CineSpawn( char *szModel )
+void CLegacyCineMonster :: CineSpawn( const char *szModel )
 {
 	PRECACHE_MODEL(szModel);
 	SET_MODEL(ENT(pev), szModel);
@@ -124,7 +124,7 @@ void CLegacyCineMonster :: CineSpawn( char *szModel )
 	// if no targetname, start now
 	if ( FStringNull(pev->targetname) )	
 	{
-		SetThink(&CLegacyCineMonster :: CineThink );
+		SetThink( &CLegacyCineMonster::CineThink );
 		AbsoluteNextThink( m_fNextThink + 0.1 );
 	}
 }
@@ -136,7 +136,7 @@ void CLegacyCineMonster :: CineSpawn( char *szModel )
 void CLegacyCineMonster :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	pev->animtime = 0;	// reset the sequence
-	SetThink(&CLegacyCineMonster :: CineThink );
+	SetThink( &CLegacyCineMonster::CineThink );
 	SetNextThink( 0 );
 }
 
@@ -145,7 +145,7 @@ void CLegacyCineMonster :: Use( CBaseEntity *pActivator, CBaseEntity *pCaller, U
 //
 void CLegacyCineMonster :: Die( void )
 {
-	SetThink(&CLegacyCineMonster :: SUB_Remove );
+	SetThink( &CLegacyCineMonster::SUB_Remove );
 }
 
 //
@@ -228,14 +228,14 @@ void CCineBlood :: BloodGush ( void )
 
 void CCineBlood :: BloodStart ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	SetThink(&CCineBlood :: BloodGush );
+	SetThink( &CCineBlood::BloodGush );
 	SetNextThink( 0 );// now!
 }
 
 void CCineBlood :: Spawn ( void )
 {
 	pev->solid = SOLID_NOT;
-	SetUse(&CCineBlood :: BloodStart );
+	SetUse ( &CCineBlood::BloodStart );
 	pev->health = 20;//hacked health to count iterations
 }
 

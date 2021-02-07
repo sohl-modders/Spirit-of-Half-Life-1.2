@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -268,7 +268,7 @@ void CRoach :: MonsterThink( void  )
 					pSound = CSoundEnt::SoundPointerForIndex( m_iAudibleList );
 
 					// roach smells food and is just standing around. Go to food unless food isn't on same z-plane.
-					if ( pSound && abs( pSound->m_vecOrigin.z - pev->origin.z ) <= 3 )
+					if ( pSound && fabs( pSound->m_vecOrigin.z - pev->origin.z ) <= 3 )
 					{
 						PickNewDest( ROACH_SMELL_FOOD );
 						SetActivity ( ACT_WALK );
@@ -451,7 +451,7 @@ void CRoach :: Look ( int iDistance )
 				case	R_NO:
 					break;
 				default:
-					ALERT ( at_debug, "%s can't assess %s\n", STRING(pev->classname), STRING(pSightEnt->pev->classname ) );
+					ALERT ( at_console, "%s can't asses %s\n", STRING(pev->classname), STRING(pSightEnt->pev->classname ) );
 					break;
 				}
 			}

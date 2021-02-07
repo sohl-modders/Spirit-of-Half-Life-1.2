@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1999, 2000 Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -34,6 +34,7 @@ public:
 
 	void Spawn( void );
 	void Precache( void );
+	void UpdateOnRemove() override;
 	int  Classify( void ) { return CLASS_ALIEN_MILITARY; };
 	int  BloodColor( void ) { return BLOOD_COLOR_YELLOW; }
 	void Killed( entvars_t *pevAttacker, int iGib );
@@ -351,7 +352,25 @@ void CNihilanth::Precache( void )
 	PRECACHE_SOUND("debris/beamstart7.wav");
 }
 
+void CNihilanth::UpdateOnRemove()
+{
+	CBaseMonster::UpdateOnRemove();
 
+	if (m_pBall)
+	{
+		UTIL_Remove(m_pBall);
+		m_pBall = nullptr;
+	}
+
+	for (auto& hSphere : m_hSphere)
+	{
+		if (CBaseEntity* pSphere = hSphere)
+		{
+			UTIL_Remove(pSphere);
+			hSphere = nullptr;
+		}
+	}
+}
 
 void CNihilanth :: PainSound( void )
 {
@@ -385,9 +404,9 @@ void CNihilanth::NullThink( void )
 
 void CNihilanth::StartupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	SetThink(&CNihilanth:: HuntThink );
+	SetThink( &CNihilanth::HuntThink );
 	SetNextThink( 0.1 );
-	SetUse(&CNihilanth:: CommandUse );
+	SetUse( &CNihilanth::CommandUse );
 }
 
 
@@ -417,8 +436,8 @@ void CNihilanth::StartupThink( void )
 	}
 	m_hRecharger = NULL;
 
-	SetThink(&CNihilanth:: HuntThink);
-	SetUse(&CNihilanth:: CommandUse );
+	SetThink( &CNihilanth::HuntThink);
+	SetUse( &CNihilanth::CommandUse );
 	SetNextThink( 0.1 );
 }
 
@@ -469,7 +488,7 @@ void CNihilanth :: DyingThink( void )
 	{
 		if (m_pBall->pev->renderamt > 0)
 		{
-			m_pBall->pev->renderamt = max( 0, m_pBall->pev->renderamt - 2);
+			m_pBall->pev->renderamt = V_max( 0, m_pBall->pev->renderamt - 2);
 		}
 		else
 		{
@@ -720,7 +739,7 @@ void CNihilanth :: NextActivity( )
 
 	if ((pev->health < gSkillData.nihilanthHealth / 2 || m_iActiveSpheres < N_SPHERES / 2) && m_hRecharger == NULL && m_iLevel <= 9)
 	{
-		char szName[64];
+		char szName[128];
 
 		CBaseEntity *pEnt = NULL;
 		CBaseEntity *pRecharger = NULL;
@@ -768,12 +787,12 @@ void CNihilanth :: NextActivity( )
 
 			if (iseq != pev->sequence)
 			{
-				char szText[64];
+				char szText[128];
 
 				sprintf( szText, "%s%d", m_szDrawUse, m_iLevel );
 				FireTargets( szText, this, this, USE_ON, 1.0 );
 
-				ALERT( at_debug, "fireing %s\n", szText );
+				ALERT( at_console, "fireing %s\n", szText );
 			}
 			pev->sequence = LookupSequence( "recharge" );
 		}
@@ -816,7 +835,7 @@ void CNihilanth :: NextActivity( )
 				}
 				else
 				{
-					char szText[64];
+					char szText[128];
 
 					sprintf( szText, "%s%d", m_szTeleportTouch, m_iTeleport );
 					CBaseEntity *pTouch = UTIL_FindEntityByTargetname( NULL, szText );
@@ -853,7 +872,7 @@ void CNihilanth :: HuntThink( void )
 	// if dead, force cancelation of current animation
 	if (pev->health <= 0)
 	{
-		SetThink(&CNihilanth :: DyingThink );
+		SetThink( &CNihilanth::DyingThink );
 		m_fSequenceFinished = TRUE;
 		return;
 	}
@@ -891,7 +910,7 @@ void CNihilanth :: HuntThink( void )
 		}
 		else
 		{
-			m_flAdj = min( m_flAdj + 10, 1000 );
+			m_flAdj = V_min( m_flAdj + 10, 1000 );
 		}
 	}
 
@@ -1023,7 +1042,6 @@ BOOL CNihilanth :: EmitSphere( void )
 }
 
 
-//LRC- never called(?)  No. --PC.
 void CNihilanth :: 	TargetSphere( USE_TYPE useType, float value )
 {
 	CBaseMonster *pSphere;
@@ -1100,7 +1118,7 @@ void CNihilanth :: HandleAnimEvent( MonsterEvent_t *pEvent )
 	case 3:	// prayer
 		if (m_hEnemy != NULL)
 		{
-			char szText[32];
+			char szText[128];
 
 			sprintf( szText, "%s%d", m_szTeleportTouch, m_iTeleport );
 			CBaseEntity *pTouch = UTIL_FindEntityByTargetname( NULL, szText );
@@ -1205,9 +1223,24 @@ void CNihilanth::CommandUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 	{
 	case USE_OFF:
 		{
-		CBaseEntity *pTouch = UTIL_FindEntityByTargetname( NULL, m_szDeadTouch );
-		if ( pTouch && m_hEnemy != NULL )
-			pTouch->Touch( m_hEnemy );
+			CBaseEntity *pTouch = UTIL_FindEntityByTargetname( NULL, m_szDeadTouch );
+
+			if ( pTouch )
+			{
+				if ( m_hEnemy != NULL )
+				{
+					pTouch->Touch( m_hEnemy );
+				}
+				// if the player is using "notarget", the ending sequence won't fire unless we catch it here
+				else
+				{
+					CBaseEntity *pEntity = UTIL_FindEntityByClassname( NULL, "player" );				
+					if ( pEntity != NULL && pEntity->IsAlive() )
+					{
+						pTouch->Touch( pEntity );
+					}
+				}
+			}
 		}
 		break;
 	case USE_ON:
@@ -1339,8 +1372,8 @@ void CNihilanthHVR :: CircleInit( CBaseEntity *pTarget )
 	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
 	UTIL_SetOrigin( this, pev->origin );
 
-	SetThink(&CNihilanthHVR :: HoverThink );
-	SetTouch(&CNihilanthHVR :: BounceTouch );
+	SetThink( &CNihilanthHVR::HoverThink );
+	SetTouch( &CNihilanthHVR::BounceTouch );
 	SetNextThink( 0.1 );
 	
 	m_hTargetEnt = pTarget;
@@ -1442,8 +1475,8 @@ void CNihilanthHVR :: ZapInit( CBaseEntity *pEnemy )
 	pev->velocity = (pEnemy->pev->origin - pev->origin).Normalize() * 200;
 
 	m_hEnemy = pEnemy;
-	SetThink(&CNihilanthHVR :: ZapThink );
-	SetTouch(&CNihilanthHVR :: ZapTouch );
+	SetThink( &CNihilanthHVR::ZapThink );
+	SetTouch( &CNihilanthHVR::ZapTouch );
 	SetNextThink( 0.1 );
 
 	EMIT_SOUND_DYN( edict(), CHAN_WEAPON, "debris/zap4.wav", 1, ATTN_NORM, 0, 100 );
@@ -1568,8 +1601,8 @@ void CNihilanthHVR :: TeleportInit( CNihilanth *pOwner, CBaseEntity *pEnemy, CBa
 	m_hTargetEnt = pTarget;
 	m_hTouch = pTouch;
 
-	SetThink(&CNihilanthHVR :: TeleportThink );
-	SetTouch(&CNihilanthHVR :: TeleportTouch );
+	SetThink( &CNihilanthHVR::TeleportThink );
+	SetTouch( &CNihilanthHVR::TeleportTouch );
 	SetNextThink( 0.1 );
 
 	EMIT_SOUND_DYN( edict(), CHAN_WEAPON, "x/x_teleattack1.wav", 1, 0.2, 0, 100 );
@@ -1588,7 +1621,7 @@ void CNihilanthHVR :: GreenBallInit( )
 
 	SET_MODEL(edict(), "sprites/exit1.spr");
 
-	SetTouch(&CNihilanthHVR :: RemoveTouch );
+	SetTouch( &CNihilanthHVR::RemoveTouch );
 }
 
 
@@ -1640,7 +1673,7 @@ void CNihilanthHVR :: TeleportThink( void  )
 
 void CNihilanthHVR :: AbsorbInit( void  )
 {
-	SetThink(&CNihilanthHVR :: DissipateThink );
+	SetThink( &CNihilanthHVR::DissipateThink );
 	pev->renderamt = 255;
 
 	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );

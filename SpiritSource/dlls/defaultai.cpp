@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -1043,7 +1043,8 @@ Schedule_t *CBaseMonster::m_scheduleList[] =
 	slTakeCoverFromOrigin,
 	slTakeCoverFromBestSound,
 	slTakeCoverFromEnemy,
-	slFail
+	slFail,
+	slTeleportToScript
 };
 
 Schedule_t *CBaseMonster::ScheduleFromName( const char *pName )
@@ -1058,7 +1059,7 @@ Schedule_t *CBaseMonster :: ScheduleInList( const char *pName, Schedule_t **pLis
 	
 	if ( !pName )
 	{
-		ALERT( at_debug, "%s set to unnamed schedule!\n", STRING(pev->classname) );
+		ALERT( at_console, "%s set to unnamed schedule!\n", STRING(pev->classname) );
 		return NULL;
 	}
 
@@ -1067,7 +1068,7 @@ Schedule_t *CBaseMonster :: ScheduleInList( const char *pName, Schedule_t **pLis
 	{
 		if ( !pList[i]->pName )
 		{
-			ALERT( at_debug, "Unnamed schedule!\n" );
+			ALERT( at_console, "Unnamed schedule!\n" );
 			continue;
 		}
 		if ( stricmp( pName, pList[i]->pName ) == 0 )
@@ -1085,10 +1086,9 @@ Schedule_t* CBaseMonster :: GetScheduleOfType ( int Type )
 //	ALERT ( at_console, "Sched Type:%d\n", Type );
 	switch	( Type )
 	{
-	// This is the schedule for scripted sequences AND scripted AI. // LRC- And scripted actions, too.
+	// This is the schedule for scripted sequences AND scripted AI
 	case SCHED_AISCRIPT:
 		{
-//			ALERT(at_console, "Doing AISCRIPT\n");
 			ASSERT( m_pCine != NULL );
 			if ( !m_pCine )
 			{
@@ -1101,16 +1101,15 @@ Schedule_t* CBaseMonster :: GetScheduleOfType ( int Type )
 
 			switch ( m_pCine->m_fMoveTo )
 			{
-			case 0: 
-				return slWaitScript;
-			case 4: case 6:
-				return slTeleportToScript;
-			case 1: 
-				return slWalkToScript;
-			case 2: 
-				return slRunToScript;
-			case 5:
-				return slFaceScript;
+				case 0: 
+				case 4: 
+					return slWaitScript;
+				case 1: 
+					return slWalkToScript;
+				case 2: 
+					return slRunToScript;
+				case 5:
+					return slFaceScript;
 			}
 			break;
 		}
@@ -1249,7 +1248,7 @@ Schedule_t* CBaseMonster :: GetScheduleOfType ( int Type )
 		}
 	default:
 		{
-			ALERT ( at_debug, "GetScheduleOfType()\nNo CASE for Schedule Type %d!\n", Type );
+			ALERT ( at_console, "GetScheduleOfType()\nNo CASE for Schedule Type %d!\n", Type );
 
 			return &slIdleStand[ 0 ];
 			break;

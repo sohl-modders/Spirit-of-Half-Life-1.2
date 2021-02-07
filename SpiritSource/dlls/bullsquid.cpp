@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -25,8 +25,8 @@
 #include	"effects.h"
 #include	"decals.h"
 #include	"soundent.h"
-#include	"scripted.h"
 #include	"game.h"
+#include	"scripted.h"
 
 #define		SQUID_SPRINT_DIST	256 // how close the squid has to get before starting to sprint and refusing to swerve
 
@@ -122,7 +122,7 @@ void CSquidSpit::Shoot( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity
 	pSpit->pev->velocity = vecVelocity;
 	pSpit->pev->owner = ENT(pevOwner);
 
-	pSpit->SetThink(&CSquidSpit:: Animate );
+	pSpit->SetThink ( &CSquidSpit::Animate );
 	pSpit->SetNextThink( 0.1 );
 }
 
@@ -173,7 +173,7 @@ void CSquidSpit :: Touch ( CBaseEntity *pOther )
 		pOther->TakeDamage ( pev, pev, gSkillData.bullsquidDmgSpit, DMG_GENERIC );
 	}
 
-	SetThink(&CSquidSpit :: SUB_Remove );
+	SetThink ( &CSquidSpit::SUB_Remove );
 	SetNextThink( 0 );
 }
 
@@ -248,7 +248,6 @@ int CBullsquid::IgnoreConditions ( void )
 	if ( gpGlobals->time - m_flLastHurtTime <= 20 )
 	{
 		// haven't been hurt in 20 seconds, so let the squid care about stink. 
-		// Er, more like, we HAVE been hurt in the last 20 seconds, so DON'T let it care about food. --LRC
 		iIgnore = bits_COND_SMELL | bits_COND_SMELL_FOOD;
 	}
 
@@ -257,7 +256,6 @@ int CBullsquid::IgnoreConditions ( void )
 		if ( FClassnameIs( m_hEnemy->pev, "monster_headcrab" ) )
 		{
 			// (Unless after a tasty headcrab)
-			// i.e. when chasing a headcrab, don't worry about other food. --LRC
 			iIgnore = bits_COND_SMELL | bits_COND_SMELL_FOOD;
 		}
 	}
@@ -534,49 +532,51 @@ void CBullsquid :: HandleAnimEvent( MonsterEvent_t *pEvent )
 	{
 		case BSQUID_AE_SPIT:
 		{
-			Vector	vecSpitOffset;
-			Vector	vecSpitDir;
+			if (m_hEnemy) {
+				Vector	vecSpitOffset;
+				Vector	vecSpitDir;
 
-			UTIL_MakeVectors ( pev->angles );
+				UTIL_MakeVectors(pev->angles);
 
-			// !!!HACKHACK - the spot at which the spit originates (in front of the mouth) was measured in 3ds and hardcoded here.
-			// we should be able to read the position of bones at runtime for this info.
-			vecSpitOffset = ( gpGlobals->v_right * 8 + gpGlobals->v_forward * 37 + gpGlobals->v_up * 23 );		
-			vecSpitOffset = ( pev->origin + vecSpitOffset );
-			if (m_pCine) // LRC- are we being told to do this by a scripted_action?
-			{
-				if (m_hTargetEnt != NULL && m_pCine->PreciseAttack())
-					vecSpitDir = ( ( m_hTargetEnt->pev->origin ) - vecSpitOffset ).Normalize();
+				// !!!HACKHACK - the spot at which the spit originates (in front of the mouth) was measured in 3ds and hardcoded here.
+				// we should be able to read the position of bones at runtime for this info.
+				vecSpitOffset = (gpGlobals->v_right * 8 + gpGlobals->v_forward * 37 + gpGlobals->v_up * 23);
+				vecSpitOffset = (pev->origin + vecSpitOffset);
+				if (m_pCine) // LRC- are we being told to do this by a scripted_action?
+				{
+					if (m_hTargetEnt != NULL && m_pCine->PreciseAttack())
+						vecSpitDir = ((m_hTargetEnt->pev->origin) - vecSpitOffset).Normalize();
+					else
+						vecSpitDir = gpGlobals->v_forward;
+				}
 				else
-					vecSpitDir = gpGlobals->v_forward;
+					vecSpitDir = ((m_hEnemy->pev->origin + m_hEnemy->pev->view_ofs) - vecSpitOffset).Normalize();
+
+				vecSpitDir.x += RANDOM_FLOAT(-0.05, 0.05);
+				vecSpitDir.y += RANDOM_FLOAT(-0.05, 0.05);
+				vecSpitDir.z += RANDOM_FLOAT(-0.05, 0);
+
+
+				// do stuff for this event.
+				AttackSound();
+
+				// spew the spittle temporary ents.
+				MESSAGE_BEGIN(MSG_PVS, SVC_TEMPENTITY, vecSpitOffset);
+				WRITE_BYTE(TE_SPRITE_SPRAY);
+				WRITE_COORD(vecSpitOffset.x);	// pos
+				WRITE_COORD(vecSpitOffset.y);
+				WRITE_COORD(vecSpitOffset.z);
+				WRITE_COORD(vecSpitDir.x);	// dir
+				WRITE_COORD(vecSpitDir.y);
+				WRITE_COORD(vecSpitDir.z);
+				WRITE_SHORT(iSquidSpitSprite);	// model
+				WRITE_BYTE(15);			// count
+				WRITE_BYTE(210);			// speed
+				WRITE_BYTE(25);			// noise ( client will divide by 100 )
+				MESSAGE_END();
+
+				CSquidSpit::Shoot(pev, vecSpitOffset, vecSpitDir * 900);
 			}
-			else
-			vecSpitDir = ( ( m_hEnemy->pev->origin + m_hEnemy->pev->view_ofs ) - vecSpitOffset ).Normalize();
-
-			vecSpitDir.x += RANDOM_FLOAT( -0.05, 0.05 );
-			vecSpitDir.y += RANDOM_FLOAT( -0.05, 0.05 );
-			vecSpitDir.z += RANDOM_FLOAT( -0.05, 0 );
-
-
-			// do stuff for this event.
-			AttackSound();
-
-			// spew the spittle temporary ents.
-			MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecSpitOffset );
-				WRITE_BYTE( TE_SPRITE_SPRAY );
-				WRITE_COORD( vecSpitOffset.x);	// pos
-				WRITE_COORD( vecSpitOffset.y);	
-				WRITE_COORD( vecSpitOffset.z);	
-				WRITE_COORD( vecSpitDir.x);	// dir
-				WRITE_COORD( vecSpitDir.y);	
-				WRITE_COORD( vecSpitDir.z);	
-				WRITE_SHORT( iSquidSpitSprite );	// model
-				WRITE_BYTE ( 15 );			// count
-				WRITE_BYTE ( 210 );			// speed
-				WRITE_BYTE ( 25 );			// noise ( client will divide by 100 )
-			MESSAGE_END();
-
-			CSquidSpit::Shoot( pev, vecSpitOffset, vecSpitDir * 900 );
 		}
 		break;
 

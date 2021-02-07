@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -134,7 +134,7 @@ void CGameRules::RefreshSkillData ( void )
 
 	gSkillData.iSkillLevel = iSkill;
 
-	ALERT ( at_debug, "\nGAME SKILL LEVEL:%d\n",iSkill );
+	ALERT ( at_console, "\nGAME SKILL LEVEL:%d\n",iSkill );
 
 	//Agrunt		
 	gSkillData.agruntHealth = GetSkillCvar( "sk_agrunt_health" );

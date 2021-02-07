@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -122,7 +122,7 @@ void CBubbling::Spawn( void )
 
 	if ( !(pev->spawnflags & SF_BUBBLES_STARTOFF) )
 	{
-		SetThink(&CBubbling:: FizzThink );
+		SetThink( &CBubbling::FizzThink );
 		SetNextThink( 2.0 );
 		m_state = 1;
 	}
@@ -143,8 +143,8 @@ void CBubbling::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 
 	if ( m_state )
 	{
-		SetThink(&CBubbling:: FizzThink );
-		SetNextThink( 0.1 );
+		SetThink( & CBubbling::FizzThink );
+		SetNextThink(0.1);
 	}
 	else
 	{
@@ -329,12 +329,12 @@ void CBeam::RelinkBeam( void )
 {
 	const Vector &startPos = GetStartPos(), &endPos = GetEndPos();
 
-	pev->mins.x = min( startPos.x, endPos.x );
-	pev->mins.y = min( startPos.y, endPos.y );
-	pev->mins.z = min( startPos.z, endPos.z );
-	pev->maxs.x = max( startPos.x, endPos.x );
-	pev->maxs.y = max( startPos.y, endPos.y );
-	pev->maxs.z = max( startPos.z, endPos.z );
+	pev->mins.x = V_min( startPos.x, endPos.x );
+	pev->mins.y = V_min( startPos.y, endPos.y );
+	pev->mins.z = V_min( startPos.z, endPos.z );
+	pev->maxs.x = V_max( startPos.x, endPos.x );
+	pev->maxs.y = V_max( startPos.y, endPos.y );
+	pev->maxs.z = V_max( startPos.z, endPos.z );
 	pev->mins = pev->mins - pev->origin;
 	pev->maxs = pev->maxs - pev->origin;
 
@@ -347,12 +347,12 @@ void CBeam::SetObjectCollisionBox( void )
 {
 	const Vector &startPos = GetStartPos(), &endPos = GetEndPos();
 
-	pev->absmin.x = min( startPos.x, endPos.x );
-	pev->absmin.y = min( startPos.y, endPos.y );
-	pev->absmin.z = min( startPos.z, endPos.z );
-	pev->absmax.x = max( startPos.x, endPos.x );
-	pev->absmax.y = max( startPos.y, endPos.y );
-	pev->absmax.z = max( startPos.z, endPos.z );
+	pev->absmin.x = V_min( startPos.x, endPos.x );
+	pev->absmin.y = V_min( startPos.y, endPos.y );
+	pev->absmin.z = V_min( startPos.z, endPos.z );
+	pev->absmax.x = V_max( startPos.x, endPos.x );
+	pev->absmax.y = V_max( startPos.y, endPos.y );
+	pev->absmax.z = V_max( startPos.z, endPos.z );
 }
 #endif
 
@@ -366,7 +366,7 @@ void CBeam::TriggerTouch( CBaseEntity *pOther )
 			CBaseEntity *pOwner = CBaseEntity::Instance(pev->owner);
 			pOwner->Use( pOther, this, USE_TOGGLE, 0 );
 		}
-		ALERT( at_debug, "Firing targets!!!\n" );
+		ALERT( at_console, "Firing targets!!!\n" );
 	}
 }
 
@@ -465,7 +465,7 @@ LINK_ENTITY_TO_CLASS( trip_beam, CTripBeam );
 void CTripBeam::Spawn( void )
 {
 	CLightning::Spawn();
-	SetTouch(&CTripBeam:: TriggerTouch );
+	SetTouch( &CTripBeam::TriggerTouch );
 	pev->solid = SOLID_TRIGGER;
 	RelinkBeam();
 }
@@ -497,7 +497,7 @@ void CLightning::Spawn( void )
 {
 	if ( FStringNull( m_iszSpriteName ) )
 	{
-		SetThink(&CLightning:: SUB_Remove );
+		SetThink( &CLightning::SUB_Remove );
 		return;
 	}
 	pev->solid = SOLID_NOT;							// Remove model & collisions
@@ -541,11 +541,11 @@ void CLightning::Spawn( void )
 		m_active = 0;
 		if ( !FStringNull(pev->targetname) )
 		{
-			SetUse(&CLightning:: StrikeUse );
+			SetUse( &CLightning::StrikeUse );
 		}
 		if ( FStringNull(pev->targetname) || FBitSet(pev->spawnflags, SF_BEAM_STARTON) )
 		{
-			SetThink(&CLightning:: StrikeThink );
+			SetThink( &CLightning::StrikeThink );
 			SetNextThink( 1.0 );
 		}
 	}
@@ -668,7 +668,7 @@ void CLightning::StrikeUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	}
 	else
 	{
-		SetThink(&CLightning:: StrikeThink );
+		SetThink( &CLightning::StrikeThink );
 		SetNextThink( 0.1 );
 	}
 
@@ -1590,7 +1590,7 @@ void CSprite::Expand( float scaleSpeed, float fadeSpeed )
 {
 	pev->speed = scaleSpeed;
 	pev->health = fadeSpeed;
-	SetThink(&CSprite:: ExpandThink );
+	SetThink( &CSprite::ExpandThink );
 
 	SetNextThink( 0 );
 	m_lastTime		= gpGlobals->time;
@@ -2505,7 +2505,7 @@ void CTestEffect::TestThink( void )
 		}
 		m_flStartTime = gpGlobals->time;
 		m_iBeam = 0;
-		// pev->nextthink = gpGlobals->time;
+		//SetNextThink(0);
 		SetThink( NULL );
 	}
 }
@@ -2513,7 +2513,7 @@ void CTestEffect::TestThink( void )
 
 void CTestEffect::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	SetThink(&CTestEffect:: TestThink );
+	SetThink( &CTestEffect::TestThink );
 	SetNextThink( 0.1 );
 	m_flStartTime = gpGlobals->time;
 }
@@ -2690,7 +2690,7 @@ void CShake::Spawn( void )
 	pev->frame			= 0;
 	
 	m_iState = STATE_OFF; //LRC
-
+	
 	if ( pev->spawnflags & SF_SHAKE_EVERYONE )
 		pev->dmg = 0;
 }
@@ -3964,7 +3964,7 @@ void CEnvDLight::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 	{
 		if (pev->spawnflags & SF_DLIGHT_ONLYONCE)
 		{
-			SetThink( SUB_Remove );
+			SetThink( &CBaseEntity::SUB_Remove );
 			SetNextThink( 0 );
 		}
 	}
@@ -3998,7 +3998,7 @@ void CEnvDLight::Think( void )
 
 	if (pev->spawnflags & SF_DLIGHT_ONLYONCE)
 	{
-		SetThink( SUB_Remove );
+		SetThink( &CBaseEntity::SUB_Remove );
 		SetNextThink( 0 );
 	}
 }
@@ -4212,7 +4212,7 @@ void CEnvBeverage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	pev->health--;
 
 	//SetThink (SUB_Remove);
-	//pev->nextthink = gpGlobals->time;
+	//SetNextThink(0);
 }
 
 void CEnvBeverage::Spawn( void )
@@ -4258,7 +4258,7 @@ void CItemSoda::Spawn( void )
 	SET_MODEL ( ENT(pev), "models/can.mdl" );
 	UTIL_SetSize ( pev, Vector ( 0, 0, 0 ), Vector ( 0, 0, 0 ) );
 	
-	SetThink(&CItemSoda::CanThink);
+	SetThink (&CItemSoda::CanThink);
 	SetNextThink( 0.5 );
 }
 
@@ -4269,7 +4269,7 @@ void CItemSoda::CanThink ( void )
 	pev->solid = SOLID_TRIGGER;
 	UTIL_SetSize ( pev, Vector ( -8, -8, 0 ), Vector ( 8, 8, 8 ) );
 	SetThink ( NULL );
-	SetTouch(&CItemSoda:: CanTouch );
+	SetTouch ( &CItemSoda::CanTouch );
 }
 
 void CItemSoda::CanTouch ( CBaseEntity *pOther )
@@ -4293,7 +4293,7 @@ void CItemSoda::CanTouch ( CBaseEntity *pOther )
 	pev->movetype = MOVETYPE_NONE;
 	pev->effects = EF_NODRAW;
 	SetTouch ( NULL );
-	SetThink(&CItemSoda:: SUB_Remove );
+	SetThink ( &CItemSoda::SUB_Remove );
 	SetNextThink( 0 );
 }
 
@@ -4547,24 +4547,31 @@ class CEnvSky : public CBaseEntity
 public:
 	void Activate( void );
 	void Think( void );
+	void Use( CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value ); // Windawz
 };
 
 void CEnvSky :: Activate ( void )
 {
 	pev->effects |= EF_NODRAW;
-	pev->nextthink = gpGlobals->time + 1.0;
+	AbsoluteNextThink(gpGlobals->time + 1.0);
 }
 
 extern int gmsgSetSky;
 
 void CEnvSky :: Think ()
 {
+	ALERT(at_console, "env_sky thinking %f\n", gpGlobals->time); // Windawz
 	MESSAGE_BEGIN(MSG_BROADCAST, gmsgSetSky, NULL);
 		WRITE_BYTE(1); // mode
 		WRITE_COORD(pev->origin.x); // view position
 		WRITE_COORD(pev->origin.y);
 		WRITE_COORD(pev->origin.z);
 	MESSAGE_END();
+}
+
+void CEnvSky::Use( CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value ) // Windawz
+{
+	Think();
 }
 
 LINK_ENTITY_TO_CLASS( env_sky, CEnvSky );
@@ -4621,7 +4628,7 @@ void CParticle::Activate( void )
 
 void CParticle::DesiredAction( void )
 {
-	pev->nextthink = gpGlobals->time + 1;
+	AbsoluteNextThink(gpGlobals->time + 1.0);
 }
 
 void CParticle::Think( void )

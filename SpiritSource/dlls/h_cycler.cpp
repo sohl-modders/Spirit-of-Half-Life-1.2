@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -35,7 +35,7 @@
 class CCycler : public CBaseMonster
 {
 public:
-	void GenericCyclerSpawn(char *szModel, Vector vecMin, Vector vecMax);
+	void GenericCyclerSpawn(const char *szModel, Vector vecMin, Vector vecMax);
 	virtual int	ObjectCaps( void ) { return (CBaseEntity :: ObjectCaps() | FCAP_IMPULSE_USE); }
 	int TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType );
 	void Spawn( void );
@@ -67,7 +67,7 @@ IMPLEMENT_SAVERESTORE( CCycler, CBaseMonster );
 class CGenericCycler : public CCycler
 {
 public:
-	void Spawn( void ) { GenericCyclerSpawn( (char *)STRING(pev->model), Vector(-16, -16, 0), Vector(16, 16, 72) ); }
+	void Spawn( void ) { GenericCyclerSpawn( STRING(pev->model), Vector(-16, -16, 0), Vector(16, 16, 72) ); }
 };
 LINK_ENTITY_TO_CLASS( cycler, CGenericCycler );
 
@@ -93,7 +93,7 @@ void CCyclerProbe :: Spawn( void )
 
 // Cycler member functions
 
-void CCycler :: GenericCyclerSpawn(char *szModel, Vector vecMin, Vector vecMax)
+void CCycler :: GenericCyclerSpawn(const char *szModel, Vector vecMin, Vector vecMax)
 {
 	if (!szModel || !*szModel)
 	{
@@ -206,7 +206,7 @@ int CCycler :: TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, floa
 		pev->framerate = 1.0;
 		StudioFrameAdvance ( 0.1 );
 		pev->framerate = 0;
-		ALERT( at_debug, "sequence: %d, frame %.0f\n", pev->sequence, pev->frame );
+		ALERT( at_console, "sequence: %d, frame %.0f\n", pev->sequence, pev->frame );
 	}
 
 	return 0;
@@ -279,7 +279,7 @@ void CCyclerSprite::Think( void )
 void CCyclerSprite::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_animate = !m_animate;
-	ALERT( at_debug, "Sprite: %s\n", STRING(pev->model) );
+	ALERT( at_console, "Sprite: %s\n", STRING(pev->model) );
 }
 
 
@@ -334,7 +334,7 @@ void CWeaponCycler::Spawn( )
 
 	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize(pev, Vector(-16, -16, 0), Vector(16, 16, 16));
-	SetTouch(&CWeaponCycler:: DefaultTouch );
+	SetTouch( &CWeaponCycler::DefaultTouch );
 }
 
 

@@ -1,10 +1,3 @@
-//========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
-//
-// Purpose: 
-//
-// $NoKeywords: $
-//=============================================================================
-
 // view/refresh setup functions
 
 #include "hud.h"
@@ -22,26 +15,17 @@
 #include "pm_defs.h"
 #include "event_api.h"
 #include "pmtrace.h"
+#include "bench.h"
 #include "screenfade.h"
 #include "shake.h"
 #include "hltv.h"
+#include "Exports.h"
 
-// Spectator Mode
-extern "C" 
-{
-	float	vecNewViewAngles[3];
-	int		iHasNewViewAngles;
-	float	vecNewViewOrigin[3];
-	int		iHasNewViewOrigin;
-	int		iIsSpectator;
-}
 
 #ifndef M_PI
 #define M_PI		3.14159265358979323846	// matches value in gcc v2 math.h
 #endif
 
-extern "C" 
-{
 	int CL_IsThirdPerson( void );
 	void CL_CameraOffset( float *ofs );
 
@@ -51,21 +35,24 @@ extern "C"
 	int		PM_GetVisEntInfo( int ent );
 	int		PM_GetPhysEntInfo( int ent );
 	void	InterpolateAngles(  float * start, float * end, float * output, float frac );
-	void	NormalizeAngles( float * angles );
+	void	NormalizeAngles( float* angles );
 	float	Distance(const float * v1, const float * v2);
 	float	AngleBetweenVectors(  const float * v1,  const float * v2 );
 
-	float	vJumpOrigin[3];
-	float	vJumpAngles[3];
-}
+	extern float	vJumpOrigin[3];
+	extern float	vJumpAngles[3];
+
 
 void V_DropPunchAngle ( float frametime, float *ev_punchangle );
 void VectorAngles( const float *forward, float *angles );
 
 #include "r_studioint.h"
 #include "com_model.h"
+#include "kbutton.h"
 
 extern engine_studio_api_t IEngineStudio;
+
+extern kbutton_t	in_mlook;
 
 /*
 The view is allowed to move slightly from it's true position for bobbing,
@@ -117,7 +104,7 @@ float	v_idlescale;  // used by TFC for concussion grenade effect
 
 //=============================================================================
 /*
-void V_NormalizeAngles( float *angles )
+void V_NormalizeAngles( vec3_t angles )
 {
 	int i;
 	// Normalize angles
@@ -212,8 +199,8 @@ float V_CalcBob ( struct ref_params_s *pparams )
 
 	bob = sqrt( vel[0] * vel[0] + vel[1] * vel[1] ) * cl_bob->value;
 	bob = bob * 0.3 + bob * 0.7 * sin(cycle);
-	bob = min( bob, 4 );
-	bob = max( bob, -7 );
+	bob = V_min( bob, 4 );
+	bob = V_max( bob, -7 );
 	return bob;
 	
 }
@@ -303,18 +290,30 @@ void V_DriftPitch ( struct ref_params_s *pparams )
 	}
 
 	// don't count small mouse motion
-	if (pd.nodrift)
+	if ( pd.nodrift)
 	{
-		if ( fabs( pparams->cmd->forwardmove ) < cl_forwardspeed->value )
-			pd.driftmove = 0;
-		else
-			pd.driftmove += pparams->frametime;
-	
-		if ( pd.driftmove > v_centermove->value)
-		{
-			V_StartPitchDrift ();
+		if ( v_centermove->value > 0 && !(in_mlook.state & 1) )
+		{		
+			// this is for lazy players. if they stopped, looked around and then continued
+			// to move the view will be centered automatically if they move more than
+			// v_centermove units. 
+
+			if ( fabs( pparams->cmd->forwardmove ) < cl_forwardspeed->value )
+				pd.driftmove = 0;
+			else
+				pd.driftmove += pparams->frametime;
+		
+			if ( pd.driftmove > v_centermove->value)
+			{
+				V_StartPitchDrift ();
+			}
+			else
+			{
+				return;	// player didn't move enough
+			}
 		}
-		return;
+
+		return;	// don't drift view
 	}
 	
 	delta = pparams->idealpitch - pparams->cl_viewangles[PITCH];
@@ -326,7 +325,8 @@ void V_DriftPitch ( struct ref_params_s *pparams )
 	}
 
 	move = pparams->frametime * pd.pitchvel;
-	pd.pitchvel += pparams->frametime * v_centerspeed->value;
+	
+	pd.pitchvel *= (1.0f+(pparams->frametime*0.25f)); // get faster by time
 	
 	if (delta > 0)
 	{
@@ -393,7 +393,7 @@ void V_AddIdle ( struct ref_params_s *pparams )
 	pparams->viewangles[YAW] += v_idlescale * sin(pparams->time*v_iyaw_cycle.value) * v_iyaw_level.value;
 }
 
-
+ 
 /*
 ==============
 V_CalcViewRoll
@@ -795,7 +795,7 @@ void V_CalcNormalRefdef ( struct ref_params_s *pparams )
 			if ( dt > 0.0 )
 			{
 				frac = ( t - ViewInterp.OriginTime[ foundidx & ORIGIN_MASK] ) / dt;
-				frac = min( 1.0, frac );
+				frac = V_min( 1.0, frac );
 				VectorSubtract( ViewInterp.Origins[ ( foundidx + 1 ) & ORIGIN_MASK ], ViewInterp.Origins[ foundidx & ORIGIN_MASK ], delta );
 				VectorMA( ViewInterp.Origins[ foundidx & ORIGIN_MASK ], frac, delta, neworg );
 
@@ -1425,7 +1425,27 @@ void V_GetMapChasePosition(int target, float * cl_angles, float * origin, float 
 int V_FindViewModelByWeaponModel(int weaponindex)
 {
 
-	static char * modelmap[][2] =	{
+	static const char * modelmap[][2] =	{
+
+# ifdef _TFC	// TFC models override HL models
+		{ "models/p_mini.mdl",			"models/v_tfac.mdl"			},
+		{ "models/p_sniper.mdl",		"models/v_tfc_sniper.mdl"	},
+		{ "models/p_umbrella.mdl",		"models/v_umbrella.mdl"		},
+		{ "models/p_crowbar.mdl",		"models/v_tfc_crowbar.mdl"	},
+		{ "models/p_spanner.mdl",		"models/v_tfc_spanner.mdl"	},
+		{ "models/p_knife.mdl",			"models/v_tfc_knife.mdl"	},
+		{ "models/p_medkit.mdl",		"models/v_tfc_medkit.mdl"	},
+		{ "models/p_egon.mdl",			"models/v_flame.mdl"		},
+		{ "models/p_glauncher.mdl",		"models/v_tfgl.mdl"			},
+		{ "models/p_rpg.mdl",			"models/v_tfc_rpg.mdl"		},
+		{ "models/p_nailgun.mdl",		"models/v_tfc_nailgun.mdl"	},
+		{ "models/p_snailgun.mdl",		"models/v_tfc_supernailgun.mdl" },
+		{ "models/p_9mmhandgun.mdl",	"models/v_tfc_railgun.mdl"	},
+		{ "models/p_srpg.mdl",			"models/v_tfc_rpg.mdl"		},
+		{ "models/p_smallshotgun.mdl",	"models/v_tfc_12gauge.mdl"	},
+		{ "models/p_shotgun.mdl",		"models/v_tfc_shotgun.mdl"	},
+		{ "models/p_spygun.mdl",		"models/v_tfc_pistol.mdl"	},
+#endif
 		{ "models/p_crossbow.mdl",		"models/v_crossbow.mdl"		},
 		{ "models/p_crowbar.mdl",		"models/v_crowbar.mdl"		},
 		{ "models/p_egon.mdl",			"models/v_egon.mdl"			},
@@ -1511,7 +1531,11 @@ void V_CalcSpectatorRefdef ( struct ref_params_s * pparams )
 		}
 
 		// predict missing client data and set weapon model ( in HLTV mode or inset in eye mode )
+#ifdef _TFC
+		if ( gEngfuncs.IsSpectateOnly() || gHUD.m_Spectator.m_pip->value == INSET_IN_EYE )
+#else
 		if ( gEngfuncs.IsSpectateOnly() )
+#endif
 		{
 			V_GetInEyePos( g_iUser2, pparams->simorg, pparams->cl_viewangles );
 
@@ -1574,6 +1598,9 @@ void V_CalcSpectatorRefdef ( struct ref_params_s * pparams )
 
 			case OBS_ROAMING	:	VectorCopy (v_cl_angles, v_angles);
 									VectorCopy (v_sim_org, v_origin);
+									
+									// override values if director is active
+									gHUD.m_Spectator.GetDirectorCamera(v_origin, v_angles);
 									break;
 
 			case OBS_IN_EYE		:   V_CalcNormalRefdef ( pparams );
@@ -1642,6 +1669,8 @@ void V_CalcSpectatorRefdef ( struct ref_params_s * pparams )
 
 void DLLEXPORT V_CalcRefdef( struct ref_params_s *pparams )
 {
+//	RecClCalcRefdef(pparams);
+
 	// intermission / finale rendering
 	if ( pparams->intermission )
 	{	
@@ -1688,7 +1717,7 @@ void V_DropPunchAngle ( float frametime, float *ev_punchangle )
 	
 	len = VectorNormalize ( ev_punchangle );
 	len -= (10.0 + len * 0.5) * frametime;
-	len = max( len, 0.0 );
+	len = V_max( len, 0.0 );
 	VectorScale ( ev_punchangle, len, ev_punchangle );
 }
 

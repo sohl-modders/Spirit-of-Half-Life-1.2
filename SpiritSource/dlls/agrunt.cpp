@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1999, 2000 Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -475,6 +475,15 @@ void CAGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 			CBaseEntity *pHornet = CBaseEntity::Create( "hornet", vecArmPos, UTIL_VecToAngles( vecDirToEnemy ), edict() );
 			UTIL_MakeVectors ( pHornet->pev->angles );
 			pHornet->pev->velocity = gpGlobals->v_forward * 300;
+			
+			
+			
+			switch ( RANDOM_LONG ( 0 , 2 ) )
+			{
+				case 0:	EMIT_SOUND_DYN ( ENT(pev), CHAN_WEAPON, "agrunt/ag_fire1.wav", 1.0, ATTN_NORM, 0, 100 );	break;
+				case 1:	EMIT_SOUND_DYN ( ENT(pev), CHAN_WEAPON, "agrunt/ag_fire2.wav", 1.0, ATTN_NORM, 0, 100 );	break;
+				case 2:	EMIT_SOUND_DYN ( ENT(pev), CHAN_WEAPON, "agrunt/ag_fire3.wav", 1.0, ATTN_NORM, 0, 100 );	break;
+			}
 
 			CBaseMonster *pHornetMonster = pHornet->MyMonsterPointer();
 
@@ -584,10 +593,10 @@ void CAGrunt :: Spawn()
 {
 	Precache( );
 
-	if (pev->model)
+if (pev->model)
 		SET_MODEL(ENT(pev), STRING(pev->model)); //LRC
 	else
-		SET_MODEL(ENT(pev), "models/agrunt.mdl");
+	SET_MODEL(ENT(pev), "models/agrunt.mdl");
 	UTIL_SetSize(pev, Vector(-32, -32, 0), Vector(32, 32, 64));
 
 	pev->solid			= SOLID_SLIDEBOX;
@@ -616,10 +625,10 @@ void CAGrunt :: Precache()
 {
 	int i;
 
-	if (pev->model)
+if (pev->model)
 		PRECACHE_MODEL((char*)STRING(pev->model)); //LRC
 	else
-		PRECACHE_MODEL("models/agrunt.mdl");
+	PRECACHE_MODEL("models/agrunt.mdl");
 
 	for ( i = 0; i < ARRAYSIZE( pAttackHitSounds ); i++ )
 		PRECACHE_SOUND((char *)pAttackHitSounds[i]);

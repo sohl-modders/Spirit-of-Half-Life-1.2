@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -263,7 +263,7 @@ int CBarney :: ISoundMask ( void)
 //=========================================================
 int	CBarney :: Classify ( void )
 {
-	return m_iClass?m_iClass:CLASS_PLAYER_ALLY;
+	return	m_iClass?m_iClass:CLASS_PLAYER_ALLY;
 }
 
 //=========================================================
@@ -374,17 +374,16 @@ void CBarney :: BarneyFirePistol ( void )
 	}
 	else
 	{
-		FireBullets(1, vecShootOrigin, vecShootDir, VECTOR_CONE_2DEGREES, 1024, BULLET_MONSTER_9MM );
-
-		int pitchShift = RANDOM_LONG( 0, 20 );
+	FireBullets(1, vecShootOrigin, vecShootDir, VECTOR_CONE_2DEGREES, 1024, BULLET_MONSTER_9MM );
 	
-		// Only shift about half the time
-		if ( pitchShift > 10 )
-			pitchShift = 0;
-		else
-			pitchShift -= 5;
-
-		EMIT_SOUND_DYN( ENT(pev), CHAN_WEAPON, "barney/ba_attack2.wav", 1, ATTN_NORM, 0, 100 + pitchShift );
+	int pitchShift = RANDOM_LONG( 0, 20 );
+	
+	// Only shift about half the time
+	if ( pitchShift > 10 )
+		pitchShift = 0;
+	else
+		pitchShift -= 5;
+	EMIT_SOUND_DYN( ENT(pev), CHAN_WEAPON, "barney/ba_attack2.wav", 1, ATTN_NORM, 0, 100 + pitchShift );
 	}
 
 	CSoundEnt::InsertSound ( bits_SOUND_COMBAT, pev->origin, 384, 0.3 );
@@ -453,7 +452,7 @@ void CBarney :: Spawn()
 	m_afCapability		= bits_CAP_HEAR | bits_CAP_TURN_HEAD | bits_CAP_DOORS_GROUP;
 
 	MonsterInit();
-	SetUse(&CBarney :: FollowerUse );
+	SetUse( &CBarney::FollowerUse );
 }
 
 //=========================================================
@@ -489,7 +488,7 @@ void CBarney :: TalkInit()
 	
 	CTalkMonster::TalkInit();
 
-	// barney speech group names (group names are in sentences.txt)
+	// scientists speach group names (group names are in sentences.txt)
 
 	if (!m_iszSpeakAs)
 	{
@@ -560,7 +559,7 @@ int CBarney :: TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, floa
 
 	// LRC - if my reaction to the player has been overridden, don't do this stuff
 	if (m_iPlayerReact) return ret;
-
+	
 	if ( m_MonsterState != MONSTERSTATE_PRONE && (pevAttacker->flags & FL_CLIENT) )
 	{
 		m_flPlayerDamage += flDamage;
@@ -889,10 +888,10 @@ public:
 	void KeyValue( KeyValueData *pkvd );
 
 	int	m_iPose;// which sequence to display	-- temporary, don't need to save
-	static char *m_szPoses[3];
+	static const char *m_szPoses[3];
 };
 
-char *CDeadBarney::m_szPoses[] = { "lying_on_back", "lying_on_side", "lying_on_stomach" };
+const char *CDeadBarney::m_szPoses[] = { "lying_on_back", "lying_on_side", "lying_on_stomach" };
 
 void CDeadBarney::KeyValue( KeyValueData *pkvd )
 {
@@ -923,7 +922,7 @@ void CDeadBarney :: Spawn( )
 	pev->sequence = LookupSequence( m_szPoses[m_iPose] );
 	if (pev->sequence == -1)
 	{
-		ALERT ( at_debug, "Dead barney with bad pose\n" );
+		ALERT ( at_console, "Dead barney with bad pose\n" );
 	}
 	// Corpses have less health
 	pev->health			= 8;//gSkillData.barneyHealth;

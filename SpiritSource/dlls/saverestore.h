@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -60,7 +60,7 @@ public:
 	void	WriteVector( const char *pname, const float *value, int count );	// Save a vector
 	void	WritePositionVector( const char *pname, const Vector &value );		// Offset for landmark if necessary
 	void	WritePositionVector( const char *pname, const float *value, int count );	// array of pos vectors
-	void	WriteFunction( const char *pname, const int *value, int count );		// Save a function pointer
+	void	WriteFunction( const char *pname, void **value, int count );		// Save a function pointer
 	// Save a function pointer. (LRC- also pass the classname to allow better error messages)
 	void	WriteFunction( const char* cname, const char *pname, const int *value, int count );
 
@@ -121,10 +121,7 @@ private:
 	{\
 		if ( !baseClass::Save(save) )\
 			return 0;\
-		if (pev->targetname)\
-			return save.WriteFields( STRING(pev->targetname), #derivedClass, this, m_SaveData, ARRAYSIZE(m_SaveData) );\
-		else\
-			return save.WriteFields( STRING(pev->classname), #derivedClass, this, m_SaveData, ARRAYSIZE(m_SaveData) );\
+		return save.WriteFields( #derivedClass, this, m_SaveData, ARRAYSIZE(m_SaveData) );\
 	}\
 	int derivedClass::Restore( CRestore &restore )\
 	{\

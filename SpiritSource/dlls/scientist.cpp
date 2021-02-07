@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -428,7 +428,7 @@ void CScientist::DeclineFollowing( void )
 {
 	Talk( 10 );
 	m_hTalkTarget = m_hEnemy;
-	PlaySentence( m_szGrp[TLK_DECLINE], 2, VOL_NORM, ATTN_NORM ); //LRC
+	PlaySentence( "SC_POK", 2, VOL_NORM, ATTN_NORM );
 }
 
 
@@ -480,7 +480,9 @@ void CScientist :: StartTask( Task_t *pTask )
 		{
 			Talk( 2 );
 			m_hTalkTarget = m_hEnemy;
-			if ( m_hEnemy->IsPlayer() )
+			//The enemy can be null here. - Solokiller
+			//Discovered while testing the barnacle grapple on headcrabs with scientists in view.
+			if (m_hEnemy && m_hEnemy->IsPlayer())
 				PlaySentence( "SC_PLFEAR", 5, VOL_NORM, ATTN_NORM );
 			else
 				PlaySentence( "SC_FEAR", 5, VOL_NORM, ATTN_NORM );
@@ -690,7 +692,7 @@ void CScientist :: Spawn( void )
 		pev->skin = 1;
 	
 	MonsterInit();
-	SetUse(&CScientist :: FollowerUse );
+	SetUse( &CScientist::FollowerUse );
 }
 
 //=========================================================
@@ -1126,9 +1128,9 @@ public:
 
 	void KeyValue( KeyValueData *pkvd );
 	int	m_iPose;// which sequence to display
-	static char *m_szPoses[7];
+	static const char *m_szPoses[7];
 };
-char *CDeadScientist::m_szPoses[] = { "lying_on_back", "lying_on_stomach", "dead_sitting", "dead_hang", "dead_table1", "dead_table2", "dead_table3" };
+const char *CDeadScientist::m_szPoses[] = { "lying_on_back", "lying_on_stomach", "dead_sitting", "dead_hang", "dead_table1", "dead_table2", "dead_table3" };
 
 void CDeadScientist::KeyValue( KeyValueData *pkvd )
 {
@@ -1170,7 +1172,7 @@ void CDeadScientist :: Spawn( )
 	pev->sequence = LookupSequence( m_szPoses[m_iPose] );
 	if (pev->sequence == -1)
 	{
-		ALERT ( at_debug, "Dead scientist with bad pose\n" );
+		ALERT ( at_console, "Dead scientist with bad pose\n" );
 	}
 
 	//	pev->skin += 2; // use bloody skin -- UNDONE: Turn this back on when we have a bloody skin again!
@@ -1269,7 +1271,7 @@ void CSittingScientist :: Spawn( )
 	pev->sequence = m_baseSequence + RANDOM_LONG(0,4);
 	ResetSequenceInfo( );
 	
-	SetThink(&CSittingScientist ::SittingThink);
+	SetThink (&CSittingScientist::SittingThink);
 	SetNextThink( 0.1 );
 
 	DROP_TO_FLOOR ( ENT(pev) );

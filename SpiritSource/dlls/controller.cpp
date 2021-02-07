@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -51,6 +51,7 @@ public:
 	void SetYawSpeed( void );
 	int  Classify ( void );
 	void HandleAnimEvent( MonsterEvent_t *pEvent );
+	void UpdateOnRemove() override;
 
 	void RunAI( void );
 	BOOL CheckRangeAttack1 ( float flDot, float flDist );	// balls
@@ -270,7 +271,6 @@ void CController :: HandleAnimEvent( MonsterEvent_t *pEvent )
 	{
 		case CONTROLLER_AE_HEAD_OPEN:
 		{
-			//ALERT(at_console,"Controller Head Open\n");
 			Vector vecStart, angleGun;
 			
 			GetAttachment( 0, vecStart, angleGun );
@@ -299,7 +299,6 @@ void CController :: HandleAnimEvent( MonsterEvent_t *pEvent )
 
 		case CONTROLLER_AE_BALL_SHOOT:
 		{
-			//ALERT(at_console,"Controller Ball Shoot\n");
 			Vector vecStart, angleGun;
 			
 			GetAttachment( 0, vecStart, angleGun );
@@ -337,7 +336,6 @@ void CController :: HandleAnimEvent( MonsterEvent_t *pEvent )
 
 		case CONTROLLER_AE_SMALL_SHOOT:
 		{
-			//ALERT(at_console,"Controller Small Shoot\n");
 			AttackSound( );
 			m_flShootTime = gpGlobals->time;
 			m_flShootEnd = m_flShootTime + atoi( pEvent->options ) / 15.0;
@@ -345,7 +343,6 @@ void CController :: HandleAnimEvent( MonsterEvent_t *pEvent )
 		break;
 		case CONTROLLER_AE_POWERUP_FULL:
 		{
-			//ALERT(at_console,"Controller Powerup Full\n");
 			m_iBall[0] = 255;
 			m_iBallTime[0] = gpGlobals->time + atoi( pEvent->options ) / 15.0;
 			m_iBall[1] = 255;
@@ -354,7 +351,6 @@ void CController :: HandleAnimEvent( MonsterEvent_t *pEvent )
 		break;
 		case CONTROLLER_AE_POWERUP_HALF:
 		{
-			//ALERT(at_console,"Controller Powerup Half\n");
 			m_iBall[0] = 192;
 			m_iBallTime[0] = gpGlobals->time + atoi( pEvent->options ) / 15.0;
 			m_iBall[1] = 192;
@@ -414,6 +410,23 @@ void CController :: Precache()
 	UTIL_PrecacheOther( "controller_energy_ball" );
 	UTIL_PrecacheOther( "controller_head_ball" );
 }	
+
+void CController::UpdateOnRemove()
+{
+	CSquadMonster::UpdateOnRemove();
+
+	if (m_pBall[0])
+	{
+		UTIL_Remove(m_pBall[0]);
+		m_pBall[0] = nullptr;
+	}
+
+	if (m_pBall[1])
+	{
+		UTIL_Remove(m_pBall[1]);
+		m_pBall[1] = nullptr;
+	}
+}
 
 //=========================================================
 // AI Schedules Specific to this monster
@@ -1206,8 +1219,8 @@ void CControllerHeadBall :: Spawn( void )
 	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
 	UTIL_SetOrigin( this, pev->origin );
 
-	SetThink(&CControllerHeadBall :: HuntThink );
-	SetTouch(&CControllerHeadBall :: BounceTouch );
+	SetThink( &CControllerHeadBall::HuntThink );
+	SetTouch( &CControllerHeadBall::BounceTouch );
 
 	m_vecIdeal = Vector( 0, 0, 0 );
 
@@ -1293,7 +1306,7 @@ void CControllerHeadBall :: HuntThink( void  )
 
 		m_flNextAttack = gpGlobals->time + 3.0;
 
-		SetThink(&CControllerHeadBall :: DieThink );
+		SetThink( &CControllerHeadBall::DieThink );
 		SetNextThink( 0.3 );
 	}
 
@@ -1400,8 +1413,8 @@ void CControllerZapBall :: Spawn( void )
 	UTIL_SetSize(pev, Vector( 0, 0, 0), Vector(0, 0, 0));
 	UTIL_SetOrigin( this, pev->origin );
 
-	SetThink(&CControllerZapBall :: AnimateThink );
-	SetTouch(&CControllerZapBall :: ExplodeTouch );
+	SetThink( &CControllerZapBall::AnimateThink );
+	SetTouch( &CControllerZapBall::ExplodeTouch );
 
 	m_hOwner = Instance( pev->owner );
 	pev->dmgtime = gpGlobals->time; // keep track of when ball spawned

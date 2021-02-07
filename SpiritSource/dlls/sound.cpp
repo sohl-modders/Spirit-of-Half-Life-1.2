@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -16,8 +16,6 @@
 // sound.cpp 
 //=========================================================
 
-#include <ctype.h>
-
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -25,6 +23,10 @@
 #include "player.h"
 #include "talkmonster.h"
 #include "gamerules.h"
+
+#if !defined ( _WIN32 )
+#include <ctype.h>
+#endif
 
 
 static char *memfgets( byte *pMemFile, int fileSize, int &filePos, char *pBuffer, int bufferSize );
@@ -202,7 +204,7 @@ void CAmbientGeneric :: Spawn( void )
 		ALERT( at_error, "ambient_generic \"%s\" at (%f, %f, %f) has no sound file\n",
 				STRING(pev->targetname), pev->origin.x, pev->origin.y, pev->origin.z );
 		SetNextThink( 0.1 );
-		SetThink(&CAmbientGeneric :: SUB_Remove );
+		SetThink( &CAmbientGeneric::SUB_Remove );
 		return;
 	}
     pev->solid		= SOLID_NOT;
@@ -212,12 +214,12 @@ void CAmbientGeneric :: Spawn( void )
 	// of ambient sound's pitch or volume. Don't
 	// start thinking yet.
 
-	SetThink(&CAmbientGeneric ::RampThink);
+	SetThink(&CAmbientGeneric::RampThink);
 	DontThink();
 
 	// allow on/off switching via 'use' function.
 
-	SetUse(&CAmbientGeneric :: ToggleUse );
+	SetUse ( &CAmbientGeneric::ToggleUse );
 	
 	m_fActive = FALSE;
 
@@ -1353,8 +1355,9 @@ int SENTENCEG_PlayRndI(edict_t *entity, int isentenceg,
 	name[0] = 0;
 
 	ipick = USENTENCEG_Pick(isentenceg, name);
-	if (ipick > 0 && name)
+	if (ipick > 0 && *name)
 		EMIT_SOUND_DYN(entity, CHAN_VOICE, name, volume, attenuation, flags, pitch);
+	
 	return ipick;
 }
 
@@ -1375,7 +1378,7 @@ int SENTENCEG_PlayRndSz(edict_t *entity, const char *szgroupname,
 	isentenceg = SENTENCEG_GetIndex(szgroupname);
 	if (isentenceg < 0)
 	{
-		ALERT( at_debug, "No such sentence group %s\n", szgroupname );
+		ALERT( at_console, "No such sentence group %s\n", szgroupname );
 		return -1;
 	}
 
@@ -1562,7 +1565,7 @@ void SENTENCEG_Init()
 
 int SENTENCEG_Lookup(const char *sample, char *sentencenum)
 {
-	char sznum[8];
+	char sznum[32];
 
 	int i;
 	// this is a sentence name; lookup sentence number
@@ -1714,7 +1717,7 @@ void TEXTURETYPE_Init()
 	char buffer[512];
 	int i, j;
 	byte *pMemFile;
-	int fileSize, filePos;
+	int fileSize, filePos = 0;
 
 	if (fTextureTypeInit)
 		return;
@@ -1763,7 +1766,7 @@ void TEXTURETYPE_Init()
 			continue;
 
 		// null-terminate name and save in sentences array
-		j = min (j, CBTEXTURENAMEMAX-1+i);
+		j = V_min (j, CBTEXTURENAMEMAX-1+i);
 		buffer[j] = 0;
 		strcpy(&(grgszTextureName[gcTextures++][0]), &(buffer[i]));
 	}
@@ -1795,7 +1798,6 @@ char TEXTURETYPE_Find(char *name)
 // play a strike sound based on the texture that was hit by the attack traceline.  VecSrc/VecEnd are the
 // original traceline endpoints used by the attacker, iBulletType is the type of bullet that hit the texture.
 // returns volume of strike instrument (crowbar) to play
-//   (this is not used for footsteps, only attack sound effects. --LRC)
 
 float TEXTURETYPE_PlaySound(TraceResult *ptr,  Vector vecSrc, Vector vecEnd, int iBulletType)
 {
@@ -1808,7 +1810,7 @@ float TEXTURETYPE_PlaySound(TraceResult *ptr,  Vector vecSrc, Vector vecEnd, int
 	const char *pTextureName;
 	float rgfl1[3];
 	float rgfl2[3];
-	char *rgsz[4];
+	const char *rgsz[4];
 	int cnt;
 	float fattn = ATTN_NORM;
 
@@ -2002,19 +2004,19 @@ void CSpeaker :: Spawn( void )
 	{
 		ALERT( at_error, "SPEAKER with no Level/Sentence! at: %f, %f, %f\n", pev->origin.x, pev->origin.y, pev->origin.z );
 		SetNextThink( 0.1 );
-		SetThink(&CSpeaker :: SUB_Remove );
+		SetThink( &CSpeaker::SUB_Remove );
 		return;
 	}
     pev->solid		= SOLID_NOT;
     pev->movetype	= MOVETYPE_NONE;
 
 	
-	SetThink(&CSpeaker ::SpeakerThink);
+	SetThink(&CSpeaker::SpeakerThink);
 	DontThink();
 
 	// allow on/off switching via 'use' function.
 
-	SetUse(&CSpeaker :: ToggleUse );
+	SetUse ( &CSpeaker::ToggleUse );
 
 	Precache( );
 }
@@ -2030,7 +2032,7 @@ void CSpeaker :: Precache( void )
 }
 void CSpeaker :: SpeakerThink( void )
 {
-	char* szSoundFile;
+	const char* szSoundFile;
 	float flvolume = pev->health * 0.1;
 	float flattenuation = 0.3;
 	int flags = 0;
@@ -2063,7 +2065,7 @@ void CSpeaker :: SpeakerThink( void )
 		case 12: szSoundFile = "C3A2_"; break;
 		}
 	} else
-		szSoundFile = (char*) STRING(pev->message);
+		szSoundFile = STRING(pev->message);
 	
 	if (szSoundFile[0] == '!')
 	{
@@ -2079,7 +2081,7 @@ void CSpeaker :: SpeakerThink( void )
 		// make random announcement from sentence group
 
 		if (SENTENCEG_PlayRndSz(ENT(pev), szSoundFile, flvolume, flattenuation, flags, pitch) < 0)
-			ALERT(at_debug, "Level Design Error!\nSPEAKER has bad sentence group name: %s\n",szSoundFile); 
+			ALERT(at_console, "Level Design Error!\nSPEAKER has bad sentence group name: %s\n",szSoundFile); 
 
 		// set next announcement time for random 5 to 10 minute delay
 		SetNextThink( RANDOM_FLOAT(ANNOUNCE_MINUTES_MIN * 60.0, ANNOUNCE_MINUTES_MAX * 60.0) );

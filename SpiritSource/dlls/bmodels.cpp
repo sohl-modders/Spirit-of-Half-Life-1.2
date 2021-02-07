@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -247,7 +247,6 @@ LINK_ENTITY_TO_CLASS( func_illusionary, CFuncIllusionary );
 
 void CFuncIllusionary :: KeyValue( KeyValueData *pkvd )
 {
-	// LRC- surely it just parses this automatically? pev values are handled by the engine.
 	if (FStrEq(pkvd->szKeyName, "skin"))//skin is used for content type
 	{
 		pev->skin = atof(pkvd->szValue);
@@ -310,7 +309,7 @@ void CFuncShine :: DesiredAction( void )
 	if (pev->message && pev->renderamt)
 	{
 //		ALERT(at_console, "Prepare think\n");
-		pev->nextthink = gpGlobals->time + 1.5;
+		SetNextThink(1.5);
 	}
 }
 
@@ -530,7 +529,7 @@ void CFuncRotating :: Spawn( )
 	UTIL_SetOrigin(this, pev->origin);
 	SET_MODEL( ENT(pev), STRING(pev->model) );
 
-	SetUse(&CFuncRotating :: RotatingUse );
+	SetUse( &CFuncRotating::RotatingUse );
 	// did level designer forget to assign speed?
 	if (pev->speed <= 0)
 		pev->speed = 0;
@@ -549,7 +548,7 @@ void CFuncRotating :: Spawn( )
 	// can this brush inflict pain?
 	if ( FBitSet (pev->spawnflags, SF_BRUSH_HURT) )
 	{
-		SetTouch(&CFuncRotating :: HurtTouch );
+		SetTouch( &CFuncRotating::HurtTouch );
 	}
 	
 	Precache( );
@@ -576,23 +575,23 @@ void CFuncRotating :: Precache( void )
 		{
 		case 1:
 			PRECACHE_SOUND ("fans/fan1.wav");
-			pev->noiseRunning = MAKE_STRING("fans/fan1.wav");
+			pev->noiseRunning = ALLOC_STRING("fans/fan1.wav");
 			break;
 		case 2:
 			PRECACHE_SOUND ("fans/fan2.wav");
-			pev->noiseRunning = MAKE_STRING("fans/fan2.wav");
+			pev->noiseRunning = ALLOC_STRING("fans/fan2.wav");
 			break;
 		case 3:
 			PRECACHE_SOUND ("fans/fan3.wav");
-			pev->noiseRunning = MAKE_STRING("fans/fan3.wav");
+			pev->noiseRunning = ALLOC_STRING("fans/fan3.wav");
 			break;
 		case 4:
 			PRECACHE_SOUND ("fans/fan4.wav");
-			pev->noiseRunning = MAKE_STRING("fans/fan4.wav");
+			pev->noiseRunning = ALLOC_STRING("fans/fan4.wav");
 			break;
 		case 5:
 			PRECACHE_SOUND ("fans/fan5.wav");
-			pev->noiseRunning = MAKE_STRING("fans/fan5.wav");
+			pev->noiseRunning = ALLOC_STRING("fans/fan5.wav");
 			break;
 
 		case 0:
@@ -605,7 +604,7 @@ void CFuncRotating :: Precache( void )
 				break;
 			} else
 			{
-				pev->noiseRunning = MAKE_STRING("common/null.wav");
+				pev->noiseRunning = ALLOC_STRING("common/null.wav");
 				break;
 			}
 		}
@@ -928,15 +927,15 @@ void CPendulum :: Spawn( void )
 
 	if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_INSTANT) )
 	{		
-		SetThink(&CPendulum :: SUB_CallUseToggle );
+		SetThink( &CPendulum::SUB_CallUseToggle );
 		SetNextThink( 0.1 );
 	}
 	pev->speed = 0;
-	SetUse(&CPendulum :: PendulumUse );
+	SetUse( &CPendulum::PendulumUse );
 
 	if ( FBitSet( pev->spawnflags, SF_PENDULUM_SWING ) )
 	{
-		SetTouch(&CPendulum :: RopeTouch );
+		SetTouch ( &CPendulum::RopeTouch );
 	}
 }
 
@@ -944,7 +943,7 @@ void CPendulum :: Spawn( void )
 void CPendulum :: PendulumUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if (!ShouldToggle(useType)) return;
-
+	
 	if ( pev->speed )		// Pendulum is moving, stop it and auto-return if necessary
 	{
 		if ( FBitSet( pev->spawnflags, SF_PENDULUM_AUTO_RETURN ) )
@@ -990,6 +989,7 @@ void CPendulum::Blocked( CBaseEntity *pOther )
 {
 	m_time = gpGlobals->time;
 }
+
 
 void CPendulum :: SwingThink( void )
 {

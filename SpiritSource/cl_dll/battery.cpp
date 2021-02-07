@@ -57,12 +57,11 @@ int CHudBattery::VidInit(void)
 int CHudBattery:: MsgFunc_Battery(const char *pszName,  int iSize, void *pbuf )
 {
 	m_iFlags |= HUD_ACTIVE;
-
 	
 	BEGIN_READ( pbuf, iSize );
 	int x = READ_SHORT();
 
-	if (x != m_iBat)
+	if ( x != m_iBat )
 	{
 		m_fFade = FADE_TIME;
 		m_iBat = x;
@@ -81,7 +80,7 @@ int CHudBattery::Draw(float flTime)
 	wrect_t rc;
 
 	rc = *m_prc2;
-	rc.top  += m_iHeight * ((float)(100-(min(100,m_iBat))) * 0.01);	// battery can go from 0 to 100 so * 0.01 goes from 0 to 1
+	rc.top  += m_iHeight * ((float)(100-(V_min(100,m_iBat))) * 0.01);	// battery can go from 0 to 100 so * 0.01 goes from 0 to 1
 
 	UnpackRGB(r,g,b, gHUD.m_iHUDColor);
 

@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -17,8 +17,7 @@
 //=========================================================
 
 //LRC
-#define GAME_NAME "Spirit of Half-Life"
-
+#define GAME_NAME "The Final Death of John Deepmind"
 //#include "weapons.h"
 //#include "items.h"
 class CBasePlayerItem;
@@ -62,6 +61,8 @@ enum
 class CGameRules
 {
 public:
+	virtual ~CGameRules() = default;
+	
 	virtual void RefreshSkillData( void );// fill skill data struct with proper values
 	virtual void Think( void ) = 0;// GR_Think - runs every server frame, should handle any timer tasks, periodic events, etc.
 	virtual BOOL IsAllowedToSpawn( CBaseEntity *pEntity ) = 0;  // Can this item spawn (eg monsters don't spawn in deathmatch).
@@ -296,6 +297,7 @@ public:
 
 	virtual BOOL AllowAutoTargetCrosshair( void );
 	virtual BOOL ClientCommand( CBasePlayer *pPlayer, const char *pcmd );
+	virtual void ClientUserInfoChanged(CBasePlayer* pPlayer, char* infobuffer);
 
 // Client kills/scoring
 	virtual int IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled );

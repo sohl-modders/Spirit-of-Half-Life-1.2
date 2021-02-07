@@ -16,16 +16,15 @@
 #include "entity_state.h"
 #include "cl_entity.h"
 #include "triangleapi.h"
+#include "Exports.h"
 #include "particlemgr.h"
 
-#define DLLEXPORT __declspec( dllexport )
+#include "particleman.h"
+#include "tri.h"
 
-extern "C"
-{
-	void DLLEXPORT HUD_DrawNormalTriangles( void );
-	void DLLEXPORT HUD_DrawTransparentTriangles( void );
-};
+#include "debug_wireframe.h"
 
+extern IParticleMan *g_pParticleMan;
 extern float g_fFogColor[4];
 extern float g_fStartDist;
 extern float g_fEndDist;
@@ -220,11 +219,12 @@ Non-transparent triangles-- add them here
 */
 void DLLEXPORT HUD_DrawNormalTriangles( void )
 {
+//	RecClDrawNormalTriangles();
+
 	gHUD.m_Spectator.DrawOverview();
-	
-#if defined( TEST_IT )
-//	Draw_Triangles();
-#endif
+
+	// Admer: debug rendering
+	RenderDebugWireframe();
 }
 
 /*
@@ -234,8 +234,6 @@ HUD_DrawTransparentTriangles
 Render any triangles with transparent rendermode needs here
 =================
 */
-extern ParticleSystemManager* g_pParticleSystems; // LRC
-
 void DLLEXPORT HUD_DrawTransparentTriangles( void )
 {
 	BlackFog();
@@ -252,7 +250,6 @@ void DLLEXPORT HUD_DrawTransparentTriangles( void )
 	// LRC: draw and update particle systems
 	g_pParticleSystems->UpdateSystems(fTime - fOldTime);
 
-#if defined( TEST_IT )
-//	Draw_Triangles();
-#endif
+	if ( g_pParticleMan )
+		 g_pParticleMan->Update();
 }

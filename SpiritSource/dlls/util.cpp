@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -31,7 +31,6 @@
 #include "weapons.h"
 #include "gamerules.h"
 #include "movewith.h"
-#include "locus.h"
 
 float UTIL_WeaponTimeBase( void )
 {
@@ -318,10 +317,10 @@ edict_t *DBG_EntOfVars( const entvars_t *pev )
 {
 	if (pev->pContainingEntity != NULL)
 		return pev->pContainingEntity;
-	ALERT(at_debug, "entvars_t pContainingEntity is NULL, calling into engine");
+	ALERT(at_console, "entvars_t pContainingEntity is NULL, calling into engine");
 	edict_t* pent = (*g_engfuncs.pfnFindEntityByVars)((entvars_t*)pev);
 	if (pent == NULL)
-		ALERT(at_debug, "DAMN!  Even the engine couldn't FindEntityByVars!");
+		ALERT(at_console, "DAMN!  Even the engine couldn't FindEntityByVars!");
 	((entvars_t *)pev)->pContainingEntity = pent;
 	return pent;
 }
@@ -344,7 +343,7 @@ DBG_AssertFunction(
 		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)\n%s", szExpr, szFile, szLine, szMessage);
 	else
 		sprintf(szOut, "ASSERT FAILED:\n %s \n(%s@%d)", szExpr, szFile, szLine);
-	ALERT(at_debug, szOut);
+	ALERT(at_console, szOut);
 	}
 #endif	// DEBUG
 
@@ -395,7 +394,12 @@ Vector UTIL_VecToAngles( const Vector &vec )
 	
 //LRC - pass in a normalised axis vector and a number of degrees, and this returns the corresponding
 // angles value for an entity.
+#ifdef WIN32
 inline Vector UTIL_AxisRotationToAngles( const Vector &vecAxis, float flDegs )
+#else
+// GCC/G++ handle the "inline" keyword differently than MSVC - Shepard
+static inline Vector UTIL_AxisRotationToAngles( const Vector &vecAxis, float flDegs )
+#endif
 {
 	Vector vecTemp = UTIL_AxisRotationToVec( vecAxis, flDegs );
 	float rgflVecOut[3];
@@ -1046,11 +1050,6 @@ void UTIL_ScreenFadeAll( const Vector &color, float fadeTime, float fadeHold, in
 	for ( i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
-
-		#ifdef XENWARRIOR
-		if (((CBasePlayer*)pPlayer)->FlashlightIsOn())
-			((CBasePlayer*)pPlayer)->FlashlightTurnOff();
-		#endif
 	
 		UTIL_ScreenFadeWrite( fade, pPlayer );
 	}
@@ -1179,33 +1178,16 @@ void UTIL_SayTextAll( const char *pText, CBaseEntity *pEntity )
 	MESSAGE_END();
 }
 
-
-char *UTIL_dtos1( int d )
+char *UTIL_dtos(const int iValue)
 {
-	static char buf[8];
-	sprintf( buf, "%d", d );
-	return buf;
-}
-
-char *UTIL_dtos2( int d )
-{
-	static char buf[8];
-	sprintf( buf, "%d", d );
-	return buf;
-}
-
-char *UTIL_dtos3( int d )
-{
-	static char buf[8];
-	sprintf( buf, "%d", d );
-	return buf;
-}
-
-char *UTIL_dtos4( int d )
-{
-	static char buf[8];
-	sprintf( buf, "%d", d );
-	return buf;
+	//This buffer size calculation determines the number of characters needed for an int, plus a null terminator.
+	//See http://stackoverflow.com/questions/3919995/determining-sprintf-buffer-size-whats-the-standard/3920025#3920025
+	//The old buffer size used by the SDK functions was 8.
+	static char szBuffers[NUM_STATIC_BUFFERS][(((sizeof(int) * CHAR_BIT) / 3) + 3) + 1];
+	static size_t uiBufferIndex = 0;
+	uiBufferIndex = (uiBufferIndex + 1) % NUM_STATIC_BUFFERS;
+	snprintf(szBuffers[uiBufferIndex], sizeof(szBuffers[uiBufferIndex]), "%d", iValue);
+	return szBuffers[uiBufferIndex];
 }
 
 void UTIL_ShowMessage( const char *pString, CBaseEntity *pEntity )
@@ -1348,10 +1330,9 @@ float UTIL_AngleDistance( float next, float cur )
 {
 	float delta = next - cur;
 
-// LRC- correct for deltas > 360
-	while ( delta < -180 )
+	if ( delta < -180 )
 		delta += 360;
-	while ( delta > 180 )
+	else if ( delta > 180 )
 		delta -= 360;
 
 	return delta;
@@ -1368,16 +1349,20 @@ float UTIL_SplineFraction( float value, float scale )
 }
 
 
-char* UTIL_VarArgs( char *format, ... )
+char* UTIL_VarArgs( const char *format, ... )
 {
-	va_list		argptr;
-	static char		string[1024];
+	static char szBuffers[NUM_STATIC_BUFFERS][1024];
+	static size_t uiBufferIndex = 0;
 	
-	va_start (argptr, format);
-	vsprintf (string, format,argptr);
-	va_end (argptr);
+	va_list	argptr;
 
-	return string;	
+	uiBufferIndex = (uiBufferIndex + 1) % NUM_STATIC_BUFFERS;
+	
+	va_start(argptr, format);
+	vsprintf(szBuffers[uiBufferIndex], format, argptr);
+	va_end(argptr);
+	
+	return szBuffers[uiBufferIndex];
 }
 	
 Vector UTIL_GetAimVector( edict_t *pent, float flSpeed )
@@ -1497,7 +1482,7 @@ void UTIL_BloodStream( const Vector &origin, const Vector &direction, int color,
 		WRITE_COORD( direction.y );
 		WRITE_COORD( direction.z );
 		WRITE_BYTE( color );
-		WRITE_BYTE( min( amount, 255 ) );
+		WRITE_BYTE( V_min( amount, 255 ) );
 	MESSAGE_END();
 }				
 
@@ -1529,7 +1514,7 @@ void UTIL_BloodDrips( const Vector &origin, const Vector &direction, int color, 
 		WRITE_SHORT( g_sModelIndexBloodSpray );				// initial sprite model
 		WRITE_SHORT( g_sModelIndexBloodDrop );				// droplet sprite models
 		WRITE_BYTE( color );								// color index into host_basepal
-		WRITE_BYTE( min( max( 3, amount / 10 ), 16 ) );		// size
+		WRITE_BYTE( V_min( V_max( 3, amount / 10 ), 16 ) );		// size
 	MESSAGE_END();
 }				
 
@@ -1972,6 +1957,7 @@ BOOL UTIL_IsValidEntity( edict_t *pent )
 	return TRUE;
 }
 
+
 void UTIL_PrecacheOther( const char *szClassname )
 {
 	edict_t	*pent;
@@ -1979,7 +1965,7 @@ void UTIL_PrecacheOther( const char *szClassname )
 	pent = CREATE_NAMED_ENTITY( MAKE_STRING( szClassname ) );
 	if ( FNullEnt( pent ) )
 	{
-		ALERT ( at_debug, "NULL Ent in UTIL_PrecacheOther\n" );
+		ALERT ( at_console, "NULL Ent in UTIL_PrecacheOther\n" );
 		return;
 	}
 	
@@ -1993,7 +1979,7 @@ void UTIL_PrecacheOther( const char *szClassname )
 // UTIL_LogPrintf - Prints a logged message to console.
 // Preceded by LOG: ( timestamp ) < message >
 //=========================================================
-void UTIL_LogPrintf( char *fmt, ... )
+void UTIL_LogPrintf( const char *fmt, ... )
 {
 	va_list			argptr;
 	static char		string[1024];
@@ -2084,7 +2070,11 @@ static int gSizes[FIELD_TYPECOUNT] =
 	sizeof(float)*3,	// FIELD_POSITION_VECTOR
 	sizeof(int *),		// FIELD_POINTER
 	sizeof(int),		// FIELD_INTEGER
-	sizeof(int *),		// FIELD_FUNCTION
+#ifdef GNUC
+	sizeof(int *)*2,		// FIELD_FUNCTION
+#else
+	sizeof(int *),		// FIELD_FUNCTION	
+#endif
 	sizeof(int),		// FIELD_BOOLEAN
 	sizeof(short),		// FIELD_SHORT
 	sizeof(char),		// FIELD_CHARACTER
@@ -2394,15 +2384,15 @@ void CSave :: WritePositionVector( const char *pname, const float *value, int co
 }
 
 
-void CSave :: WriteFunction( const char* cname, const char *pname, const int *data, int count )
+void CSave :: WriteFunction( const char *pname, void **data, int count )
 {
 	const char *functionName;
 
-	functionName = NAME_FOR_FUNCTION( *data );
+	functionName = NAME_FOR_FUNCTION( (uint32)*data );
 	if ( functionName )
 		BufferField( pname, strlen(functionName) + 1, functionName );
 	else
-		ALERT( at_error, "Member \"%s\" of \"%s\" contains an invalid function pointer %p!", pname, cname, *data );
+		ALERT( at_error, "Invalid function pointer in entity!" );
 }
 
 
@@ -2458,15 +2448,12 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 
 int CSave :: WriteEntVars( const char *pname, entvars_t *pev )
 {
-	if (pev->targetname)
-		return WriteFields( STRING(pev->targetname), pname, pev, gEntvarsDescription, ENTVARS_COUNT );
-	else
-		return WriteFields( STRING(pev->classname), pname, pev, gEntvarsDescription, ENTVARS_COUNT );
+	return WriteFields( pname, pev, gEntvarsDescription, ENTVARS_COUNT );
 }
 
 
 
-int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount )
+int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount )
 {
 	int				i, j, actualCount, emptyCount;
 	TYPEDESCRIPTION	*pTest;
@@ -2565,7 +2552,7 @@ int CSave :: WriteFields( const char *cname, const char *pname, void *pBaseData,
 		break;
 
 		case FIELD_FUNCTION:
-			WriteFunction( cname, pTest->fieldName, (int *)(char *)pOutputData, pTest->fieldSize );
+			WriteFunction( pTest->fieldName, (void **)pOutputData, pTest->fieldSize );
 		break;
 		default:
 			ALERT( at_error, "Bad field type\n" );
@@ -2726,10 +2713,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 						if ( pent )
 							*((CBaseEntity **)pOutputData) = CBaseEntity::Instance(pent);
 						else
-						{
 							*((CBaseEntity **)pOutputData) = NULL;
-							if (entityIndex != -1) ALERT(at_console, "## Restore: invalid entitynum %d\n", entityIndex);
-						}
 					break;
 					case FIELD_EDICT:
 						entityIndex = *( int *)pInputData;
@@ -2796,7 +2780,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 #if 0
 			else
 			{
-				ALERT( at_debug, "Skipping global field %s\n", pName );
+				ALERT( at_console, "Skipping global field %s\n", pName );
 			}
 #endif
 			return fieldNumber;

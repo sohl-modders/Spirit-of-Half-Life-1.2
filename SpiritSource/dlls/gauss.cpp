@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -41,7 +41,7 @@ enum gauss_e {
 	GAUSS_DRAW
 };
 
-LINK_ENTITY_TO_CLASS( weapon_gauss, CGauss );
+LINK_WEAPON_TO_CLASS( weapon_gauss, CGauss );
 
 float CGauss::GetFullChargeTime( void )
 {
@@ -268,7 +268,7 @@ void CGauss::SecondaryAttack()
 		// ALERT( at_console, "%d %d %d\n", m_fInAttack, m_iSoundState, pitch );
 
 		if ( m_iSoundState == 0 )
-			ALERT( at_debug, "sound state %d\n", m_iSoundState );
+			ALERT( at_console, "sound state %d\n", m_iSoundState );
 
 		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usGaussSpin, 0.0, (float *)&g_vecZero, (float *)&g_vecZero, 0.0, 0.0, pitch, 0, ( m_iSoundState == SND_CHANGE_PITCH ) ? 1 : 0, 0 );
 

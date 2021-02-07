@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -26,7 +26,7 @@
 #define	CROWBAR_BODYHIT_VOLUME 128
 #define	CROWBAR_WALLHIT_VOLUME 512
 
-LINK_ENTITY_TO_CLASS( weapon_crowbar, CCrowbar );
+LINK_WEAPON_TO_CLASS( weapon_crowbar, CCrowbar );
 
 
 
@@ -147,7 +147,7 @@ void CCrowbar::PrimaryAttack()
 {
 	if (! Swing( 1 ))
 	{
-		SetThink(&CCrowbar:: SwingAgain );
+		SetThink( &CCrowbar::SwingAgain );
 		SetNextThink( 0.1 );
 	}
 }
@@ -203,7 +203,7 @@ int CCrowbar::Swing( int fFirst )
 		if (fFirst)
 		{
 			// miss
-			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.5;
+			m_flNextPrimaryAttack = GetNextAttackDelay(0.5);
 			
 			// player "shoot" animation
 			m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
@@ -241,8 +241,13 @@ int CCrowbar::Swing( int fFirst )
 		{
 			// subsequent swings do half
 			pEntity->TraceAttack(m_pPlayer->pev, gSkillData.plrDmgCrowbar / 2, gpGlobals->v_forward, &tr, DMG_CLUB ); 
-		}	
+		}
+		
 		ApplyMultiDamage( m_pPlayer->pev, m_pPlayer->pev );
+
+#endif
+		m_flNextPrimaryAttack = GetNextAttackDelay(0.25);
+#ifndef CLIENT_DLL
 
 		// play thwack, smack, or dong sound
 		float flVol = 1.0;
@@ -307,9 +312,8 @@ int CCrowbar::Swing( int fFirst )
 
 		m_pPlayer->m_iWeaponVolume = flVol * CROWBAR_WALLHIT_VOLUME;
 #endif
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.25;
 		
-		SetThink(&CCrowbar:: Smack );
+		SetThink( &CCrowbar::Smack );
 		SetNextThink( 0.2 );
 
 		

@@ -18,9 +18,6 @@
 // implementation of CHud class
 //
 
-//LRC - define to help track what calls are made on changelevel, save/restore, etc
-#define ENGINE_DEBUG
-
 #include "hud.h"
 #include "cl_util.h"
 #include <string.h>
@@ -32,7 +29,10 @@
 
 #include "demo.h"
 #include "demo_api.h"
-#include "vgui_scorepanel.h"
+#include "vgui_ScorePanel.h"
+
+hud_player_info_t	 g_PlayerInfoList[MAX_PLAYERS+1];	   // player info from the engine
+extra_player_info_t  g_PlayerExtraInfo[MAX_PLAYERS+1];   // additional player info sent directly to the client dll
 
 class CHLVoiceStatusHelper : public IVoiceStatusHelper
 {
@@ -129,17 +129,11 @@ int __MsgFunc_SetSky(const char *pszName, int iSize, void *pbuf)
 
 int __MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf)
 {
-#ifdef ENGINE_DEBUG
-	CONPRINT("## ResetHUD\n");
-#endif
 	return gHUD.MsgFunc_ResetHUD(pszName, iSize, pbuf );
 }
 
 int __MsgFunc_InitHUD(const char *pszName, int iSize, void *pbuf)
 {
-#ifdef ENGINE_DEBUG
-	CONPRINT("## InitHUD\n");
-#endif
 	gHUD.MsgFunc_InitHUD( pszName, iSize, pbuf );
 	return 1;
 }
@@ -163,6 +157,11 @@ int __MsgFunc_Concuss(const char *pszName, int iSize, void *pbuf)
 int __MsgFunc_GameMode(const char *pszName, int iSize, void *pbuf )
 {
 	return gHUD.MsgFunc_GameMode( pszName, iSize, pbuf );
+}
+
+int __MsgFunc_Sound2D( const char* name, int size, void* buffer )
+{
+	return gHUD.MsgFunc_Sound2D( name, size, buffer );
 }
 
 // TFFree Command Menu
@@ -299,19 +298,56 @@ int __MsgFunc_Spectator(const char *pszName, int iSize, void *pbuf)
 	return 0;
 }
 
+int __MsgFunc_SpecFade(const char *pszName, int iSize, void *pbuf)
+{
+	if (gViewPort)
+		return gViewPort->MsgFunc_SpecFade( pszName, iSize, pbuf );
+	return 0;
+}
+
+int __MsgFunc_ResetFade(const char *pszName, int iSize, void *pbuf)
+{
+	if (gViewPort)
+		return gViewPort->MsgFunc_ResetFade( pszName, iSize, pbuf );
+	return 0;
+}
+
 int __MsgFunc_AllowSpec(const char *pszName, int iSize, void *pbuf)
 {
 	if (gViewPort)
 		return gViewPort->MsgFunc_AllowSpec( pszName, iSize, pbuf );
 	return 0;
 }
- 
+
+void __CmdFunc_ModVersion()
+{
+	gEngfuncs.Con_Printf( "-----------------------------------\n" );
+	gEngfuncs.Con_Printf( "- Build date: %s\n", __DATE__ );
+	gEngfuncs.Con_Printf( "- Mod name: %s\n", "Spirit of Half-Life 1.2 for VS2019" );
+	gEngfuncs.Con_Printf( "-----------------------------------\n" );
+}
+
+void DebugWireframeHelp()
+{
+	gEngfuncs.Con_Printf( "\n" );
+	gEngfuncs.Con_Printf( "Debug Wireframe: renders up to several different debugging wireframes\n" );
+	gEngfuncs.Con_Printf( "Usage: debug_wireframe_set \"mode state\"\n" );
+	gEngfuncs.Con_Printf( "\n" );
+	gEngfuncs.Con_Printf( "Modes:\n" );
+	gEngfuncs.Con_Printf( "- everything   : sets every mode\n" );
+	gEngfuncs.Con_Printf( "- clipnodes    : visualises clipnodes (NOT YET IMPLEMENTED)\n" );
+	gEngfuncs.Con_Printf( "- movement     : draws lines showing player movement vectors (best used with thirdperson!)\n" );
+	gEngfuncs.Con_Printf( "- boundingbox  : draws bounding boxes around entities, spheres around sprites\n" );
+	gEngfuncs.Con_Printf( "\n" );
+	gEngfuncs.Con_Printf( "States:\n" );
+	gEngfuncs.Con_Printf( "- 0 : off\n" );
+	gEngfuncs.Con_Printf( "- 1 : on\n" );
+	gEngfuncs.Con_Printf( "\n" );
+}
+
 // This is called every time the DLL is loaded
 void CHud :: Init( void )
 {
-#ifdef ENGINE_DEBUG
-	CONPRINT("## CHud::Init\n");
-#endif
 	HOOK_MESSAGE( Logo );
 	HOOK_MESSAGE( ResetHUD );
 	HOOK_MESSAGE( GameMode );
@@ -324,6 +360,7 @@ void CHud :: Init( void )
 	HOOK_MESSAGE( KeyedDLight ); //LRC
 	HOOK_MESSAGE( AddShine ); //LRC
 	HOOK_MESSAGE( SetSky ); //LRC
+	HOOK_MESSAGE( Sound2D ); // Admer
 
 	// TFFree CommandMenu
 	HOOK_COMMAND( "+commandmenu", OpenCommandMenu );
@@ -331,6 +368,7 @@ void CHud :: Init( void )
 	HOOK_COMMAND( "ForceCloseCommandMenu", ForceCloseCommandMenu );
 	HOOK_COMMAND( "special", InputPlayerSpecial );
 	HOOK_COMMAND( "togglebrowser", ToggleServerBrowser );
+	HOOK_COMMAND( "version_mod", ModVersion );
 
 	HOOK_MESSAGE( ValClass );
 	HOOK_MESSAGE( TeamNames );
@@ -346,6 +384,9 @@ void CHud :: Init( void )
 
 	HOOK_MESSAGE( Spectator );
 	HOOK_MESSAGE( AllowSpec );
+	
+	HOOK_MESSAGE( SpecFade );
+	HOOK_MESSAGE( ResetFade );
 
 	// VGUI Menus
 	HOOK_MESSAGE( VGUIMenu );
@@ -353,12 +394,15 @@ void CHud :: Init( void )
 	CVAR_CREATE( "hud_classautokill", "1", FCVAR_ARCHIVE | FCVAR_USERINFO );		// controls whether or not to suicide immediately on TF class switch
 	CVAR_CREATE( "hud_takesshots", "0", FCVAR_ARCHIVE );		// controls whether or not to automatically take screenshots at the end of a round
 
+	m_pCvarDebugWireframe = CVAR_CREATE( "debug_wireframe_set", "everything 0", FCVAR_ARCHIVE ); // Admer
+	gEngfuncs.pfnAddCommand( "debug_wireframe_help", &DebugWireframeHelp ); // Admer
 
 	m_iLogo = 0;
 	m_iFOV = 0;
 	m_iHUDColor = 0x00FFA000; //255,160,0 -- LRC
 
 	CVAR_CREATE( "zoom_sensitivity_ratio", "1.2", 0 );
+	CVAR_CREATE("cl_autowepswitch", "1", FCVAR_ARCHIVE | FCVAR_USERINFO);
 	default_fov = CVAR_CREATE( "default_fov", "90", 0 );
 	m_pCvarStealMouse = CVAR_CREATE( "hud_capturemouse", "1", FCVAR_ARCHIVE );
 	m_pCvarDraw = CVAR_CREATE( "hud_draw", "1", FCVAR_ARCHIVE );
@@ -411,9 +455,6 @@ void CHud :: Init( void )
 // cleans up memory allocated for m_rg* arrays
 CHud :: ~CHud()
 {
-#ifdef ENGINE_DEBUG
-	CONPRINT("## CHud::destructor\n");
-#endif
 	delete [] m_rghSprites;
 	delete [] m_rgrcRects;
 	delete [] m_rgszSpriteNames;
@@ -451,9 +492,6 @@ int CHud :: GetSpriteIndex( const char *SpriteName )
 
 void CHud :: VidInit( void )
 {
-#ifdef ENGINE_DEBUG
-	CONPRINT("## CHud::VidInit\n");
-#endif
 	m_scrinfo.iSize = sizeof(m_scrinfo);
 	GetScreenInfo(&m_scrinfo);
 
@@ -481,7 +519,8 @@ void CHud :: VidInit( void )
 			// count the number of sprites of the appropriate res
 			m_iSpriteCount = 0;
 			client_sprite_t *p = m_pSpriteList;
-			for ( int j = 0; j < m_iSpriteCountAllRes; j++ )
+			int j;
+			for ( j = 0; j < m_iSpriteCountAllRes; j++ )
 			{
 				if ( p->iRes == m_iRes )
 					m_iSpriteCount++;

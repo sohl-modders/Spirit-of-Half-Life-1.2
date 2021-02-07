@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -116,7 +116,7 @@ public:
 
 	CNode	*m_pNodes;// pointer to the memory block that contains all node info
 	CLink	*m_pLinkPool;// big list of all node connections
-	char    *m_pRouteInfo; // compressed routing information the nodes use.
+	signed char* m_pRouteInfo; // compressed routing information the nodes use.
 
 	int		m_cNodes;// total number of nodes
 	int		m_cLinks;// total number of links

@@ -39,7 +39,7 @@ extern engine_studio_api_t IEngineStudio;
 
 static int tracerCount[ 32 ];
 
-extern "C" char PM_FindTextureType( char *name );
+#include "pm_shared.h"
 
 void V_PunchAxis( int axis, float punch );
 void VectorAngles( const float *forward, float *angles );
@@ -86,6 +86,7 @@ void EV_TrainPitchAdjust( struct event_args_s *args );
 #define VECTOR_CONE_15DEGREES Vector( 0.13053, 0.13053, 0.13053 )
 #define VECTOR_CONE_20DEGREES Vector( 0.17365, 0.17365, 0.17365 )
 
+
 // play a strike sound based on the texture that was hit by the attack traceline.  VecSrc/VecEnd are the
 // original traceline endpoints used by the attacker, iBulletType is the type of bullet that hit the texture.
 // returns volume of strike instrument (crowbar) to play
@@ -95,7 +96,7 @@ float EV_HLDM_PlayTextureSound( int idx, pmtrace_t *ptr, float *vecSrc, float *v
 	char chTextureType = CHAR_TEX_CONCRETE;
 	float fvol;
 	float fvolbar;
-	char *rgsz[4];
+	const char *rgsz[4];
 	int cnt;
 	float fattn = ATTN_NORM;
 	int entity;
@@ -931,13 +932,13 @@ void EV_FireGauss( event_args_t *args )
 				0.1,
 				m_fPrimaryFire ? 1.0 : 2.5,
 				0.0,
-				m_fPrimaryFire ? 128.0 : flDamage,
+				(m_fPrimaryFire ? 128.0 : flDamage) / 255.0,
 				0,
 				0,
 				0,
-				m_fPrimaryFire ? 255 : 255,
-				m_fPrimaryFire ? 128 : 255,
-				m_fPrimaryFire ? 0 : 255
+				(m_fPrimaryFire ? 255 : 255) / 255.0,
+				(m_fPrimaryFire ? 128 : 255) / 255.0,
+				(m_fPrimaryFire ? 0 : 255) / 255.0
 			);
 		}
 		else
@@ -948,13 +949,13 @@ void EV_FireGauss( event_args_t *args )
 				0.1,
 				m_fPrimaryFire ? 1.0 : 2.5,
 				0.0,
-				m_fPrimaryFire ? 128.0 : flDamage,
+				(m_fPrimaryFire ? 128.0 : flDamage) / 255.0,
 				0,
 				0,
 				0,
-				m_fPrimaryFire ? 255 : 255,
-				m_fPrimaryFire ? 128 : 255,
-				m_fPrimaryFire ? 0 : 255
+				(m_fPrimaryFire ? 255 : 255) / 255.0,
+				(m_fPrimaryFire ? 128 : 255) / 255.0,
+				(m_fPrimaryFire ? 0 : 255) / 255.0
 			);
 		}
 
@@ -1404,6 +1405,12 @@ void EV_EgonFire( event_args_t *args )
 	}
 	else
 	{
+		//If there is any sound playing already, kill it.
+		//This is necessary because multiple sounds can play on the same channel at the same time.
+		//In some cases, more than 1 run sound plays when the egon stops firing, in which case only the earliest entry in the list is stopped.
+		//This ensures no more than 1 of those is ever active at the same time.
+		gEngfuncs.pEventAPI->EV_StopSound(idx, CHAN_STATIC, EGON_SOUND_RUN);
+		
 		if ( iFireMode == FIRE_WIDE )
 			gEngfuncs.pEventAPI->EV_PlaySound( idx, origin, CHAN_STATIC, EGON_SOUND_RUN, 0.98, ATTN_NORM, 0, 125 );
 		else
@@ -1645,6 +1652,11 @@ void EV_SnarkFire( event_args_t *args )
 //======================
 //	   SQUEAK END
 //======================
+
+// a sound with no channel is a local only sound
+#define	SND_VOLUME		(1<<0)		// a byte
+#define	SND_ATTENUATION	(1<<1)		// a byte
+#define	SND_LOOPING		(1<<2)		// a long
 
 void EV_TrainPitchAdjust( event_args_t *args )
 {

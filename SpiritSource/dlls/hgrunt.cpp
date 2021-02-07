@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -41,7 +41,7 @@
 #include	"soundent.h"
 #include	"effects.h"
 #include	"customentity.h"
-#include	"scripted.h" //LRC
+#include	"scripted.h"
 
 int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when someone answers.
 
@@ -69,7 +69,6 @@ extern DLL_GLOBAL int		g_iSkillLevel;
 #define HEAD_COMMANDER				1
 #define HEAD_SHOTGUN				2
 #define HEAD_M203					3
-
 #define GUN_GROUP					2
 #define GUN_MP5						0
 #define GUN_SHOTGUN					1
@@ -220,7 +219,7 @@ const char *CHGrunt::pGruntSentences[] =
 	"HG_TAUNT", // say rude things
 };
 
-enum
+enum HGRUNT_SENTENCE_TYPES
 {
 	HGRUNT_SENT_NONE = -1,
 	HGRUNT_SENT_GREN = 0,
@@ -230,7 +229,7 @@ enum
 	HGRUNT_SENT_THROW,
 	HGRUNT_SENT_CHARGE,
 	HGRUNT_SENT_TAUNT,
-} HGRUNT_SENTENCE_TYPES;
+};
 
 //=========================================================
 // Speak Sentence - say your cued up sentence.
@@ -452,7 +451,7 @@ BOOL CHGrunt :: CheckRangeAttack1 ( float flDot, float flDist )
 
 		if ( !m_hEnemy->IsPlayer() && flDist <= 64 )
 		{
-			// kick nonclients who are close enough, but don't shoot at them.
+			// kick nonclients, but don't shoot at them.
 			return FALSE;
 		}
 
@@ -932,8 +931,10 @@ void CHGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 				CGrenade::ShootContact( pev, GetGunPosition(), vecToss );
 			}
 			else
-			CGrenade::ShootContact( pev, GetGunPosition(), m_vecTossVelocity );
+				CGrenade::ShootContact( pev, GetGunPosition(), m_vecTossVelocity );
+		
 			m_fThrowGrenade = FALSE;
+			
 			if (g_iSkillLevel == SKILL_HARD)
 				m_flNextGrenadeCheck = gpGlobals->time + RANDOM_FLOAT( 2, 5 );// wait a random amount of time before shooting again
 			else
@@ -2023,7 +2024,7 @@ void CHGrunt :: SetActivity ( Activity NewActivity )
 	else
 	{
 		// Not available try to get default anim
-		ALERT ( at_debug, "%s has no sequence for act:%d\n", STRING(pev->classname), NewActivity );
+		ALERT ( at_console, "%s has no sequence for act:%d\n", STRING(pev->classname), NewActivity );
 		pev->sequence		= 0;	// Set to the reset anim (if it's there)
 	}
 }
@@ -2114,7 +2115,6 @@ Schedule_t *CHGrunt :: GetSchedule( void )
 					}
 					else 
 					{
-						ALERT(at_aiconsole,"leader spotted player!\n");
 						//!!!KELLY - the leader of a squad of grunts has just seen the player or a 
 						// monster and has made it the squad's enemy. You
 						// can check pev->flags for FL_CLIENT to determine whether this is the player
@@ -2453,7 +2453,7 @@ void CHGruntRepel::Spawn( void )
 	Precache( );
 	pev->solid = SOLID_NOT;
 
-	SetUse(&CHGruntRepel:: RepelUse );
+	SetUse( &CHGruntRepel::RepelUse );
 }
 
 void CHGruntRepel::Precache( void )
@@ -2483,7 +2483,7 @@ void CHGruntRepel::RepelUse ( CBaseEntity *pActivator, CBaseEntity *pCaller, USE
 	pBeam->PointEntInit( pev->origin + Vector(0,0,112), pGrunt->entindex() );
 	pBeam->SetFlags( BEAM_FSOLID );
 	pBeam->SetColor( 255, 255, 255 );
-	pBeam->SetThink(&CBeam:: SUB_Remove );
+	pBeam->SetThink( &CBeam::SUB_Remove );
 	pBeam->SetNextThink( -4096.0 * tr.flFraction / pGrunt->pev->velocity.z + 0.5 );
 
 	UTIL_Remove( this );
@@ -2503,10 +2503,10 @@ public:
 	void KeyValue( KeyValueData *pkvd );
 
 	int	m_iPose;// which sequence to display	-- temporary, don't need to save
-	static char *m_szPoses[3];
+	static const char *m_szPoses[3];
 };
 
-char *CDeadHGrunt::m_szPoses[] = { "deadstomach", "deadside", "deadsitting" };
+const char *CDeadHGrunt::m_szPoses[] = { "deadstomach", "deadside", "deadsitting" };
 
 void CDeadHGrunt::KeyValue( KeyValueData *pkvd )
 {

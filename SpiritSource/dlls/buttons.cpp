@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -26,6 +26,9 @@
 #include "saverestore.h"
 #include "doors.h"
 
+#if !defined ( _WIN32 )
+#include <string.h> // memset())))
+#endif
 
 #define SF_BUTTON_DONTMOVE		1
 #define SF_ROTBUTTON_NOTSOLID	1
@@ -390,9 +393,9 @@ void CMultiSource::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	if (i > m_iTotal)
 	{
 		if (pCaller->pev->targetname)
-			ALERT(at_debug, "multisource \"%s\": Used by non-member %s \"%s\"\n", STRING(pev->targetname), STRING(pCaller->pev->classname), STRING(pCaller->pev->targetname));
+			ALERT(at_console, "multisource \"%s\": Used by non-member %s \"%s\"\n", STRING(pev->targetname), STRING(pCaller->pev->classname), STRING(pCaller->pev->targetname));
 		else
-			ALERT(at_debug, "multisource \"%s\": Used by non-member %s\n", STRING(pev->targetname), STRING(pCaller->pev->classname));
+			ALERT(at_console, "multisource \"%s\": Used by non-member %s\n", STRING(pev->targetname), STRING(pCaller->pev->classname));
 		return;	
 	}
 
@@ -539,7 +542,8 @@ int	CBaseButton::ObjectCaps( void )
 		(pev->takedamage?0:FCAP_IMPULSE_USE) |
 		(pev->spawnflags & SF_BUTTON_ONLYDIRECT?FCAP_ONLYDIRECT_USE:0);
 }
- 
+
+// CBaseButton
 TYPEDESCRIPTION CBaseButton::m_SaveData[] =
 {
 	DEFINE_FIELD( CBaseButton, m_fStayPushed, FIELD_BOOLEAN ),
@@ -559,7 +563,7 @@ IMPLEMENT_SAVERESTORE( CBaseButton, CBaseToggle );
 
 void CBaseButton::Precache( void )
 {
-	char *pszSound;
+	const char *pszSound;
 
 	if ( FBitSet ( pev->spawnflags, SF_BUTTON_SPARK_IF_OFF ) )// this button should spark in OFF state
 	{
@@ -655,6 +659,11 @@ void CBaseButton::KeyValue( KeyValueData *pkvd )
 		m_sounds = atoi(pkvd->szValue);
 		pkvd->fHandled = TRUE;
 	}
+	else if ( FStrEq( pkvd->szKeyName, "sounds_custom" ) )
+	{
+		m_sounds = -1;
+		pev->noise = ALLOC_STRING( pkvd->szValue );
+	}
 	else 
 		CBaseToggle::KeyValue( pkvd );
 }
@@ -712,21 +721,26 @@ LINK_ENTITY_TO_CLASS( func_button, CBaseButton );
 
 void CBaseButton::Spawn( )
 { 
-	char  *pszSound;
+	
 
 	//----------------------------------------------------
 	//determine sounds for buttons
 	//a sound of 0 should not make a sound
 	//----------------------------------------------------
-	pszSound = ButtonSound( m_sounds );
-	PRECACHE_SOUND(pszSound);
-	pev->noise = ALLOC_STRING(pszSound);
+	if ( m_sounds != -1 )
+	{
+		const char* pszSound;
+		pszSound = ButtonSound( m_sounds );
+		pev->noise = ALLOC_STRING( pszSound );
+	}
 
+	PRECACHE_SOUND( STRING( pev->noise ) );
+	
 	Precache();
 
 	if ( FBitSet ( pev->spawnflags, SF_BUTTON_SPARK_IF_OFF ) )// this button should spark in OFF state
 	{
-		SetThink(&CBaseButton:: ButtonSpark );
+		SetThink ( &CBaseButton::ButtonSpark );
 		SetNextThink( 0.5 );// no hurry, make sure everything else spawns
 	}
 
@@ -743,7 +757,7 @@ void CBaseButton::Spawn( )
 		pev->solid		= SOLID_BSP;
 	}
 	SET_MODEL(ENT(pev), STRING(pev->model));
-
+	
 	//LRC
 	if (m_iStyle >= 32) LIGHT_STYLE(m_iStyle, "z");
 	else if (m_iStyle <= -32) LIGHT_STYLE(-m_iStyle, "a");
@@ -778,7 +792,7 @@ void CBaseButton::Spawn( )
 
 	if ( FBitSet ( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) ) // touchable button
 	{
-		SetTouch(&CBaseButton:: ButtonTouch );
+		SetTouch( &CBaseButton::ButtonTouch );
 		if ( !FBitSet ( pev->spawnflags, SF_BUTTON_USEKEY ) )
 			SetUse(&CBaseButton:: ButtonUse_IgnorePlayer );
 		else
@@ -812,9 +826,9 @@ void CBaseButton :: PostSpawn( void )
 // Button sound table. 
 // Also used by CBaseDoor to get 'touched' door lock/unlock sounds
 
-char *ButtonSound( int sound )
+const char *ButtonSound( int sound )
 { 
-	char *pszSound;
+	const char *pszSound;
 
 	switch ( sound )
 	{
@@ -871,7 +885,7 @@ void DoSpark(entvars_t *pev, const Vector &location )
 
 void CBaseButton::ButtonSpark ( void )
 {
-	SetThink(&CBaseButton:: ButtonSpark );
+	SetThink ( &CBaseButton::ButtonSpark );
 	SetNextThink( 0.1 + RANDOM_FLOAT ( 0, 1.5 ) );// spark again at random interval
 
 	DoSpark( pev, pev->mins );
@@ -1036,7 +1050,7 @@ void CBaseButton::TriggerAndWait( void )
 		SetTouch ( NULL );
 		}
 		else
-			SetTouch(&CBaseButton:: ButtonTouch );
+			SetTouch( &CBaseButton::ButtonTouch );
 	}
 	else
 	{
@@ -1165,7 +1179,7 @@ void CRotButton::KeyValue( KeyValueData *pkvd )
 
 void CRotButton::Spawn( void )
 {
-	char *pszSound;
+	const char *pszSound;
 	//----------------------------------------------------
 	//determine sounds for buttons
 	//a sound of 0 should not make a sound
@@ -1316,7 +1330,7 @@ void CMomentaryRotButton::Spawn( void )
 	UTIL_SetOrigin(this, pev->origin);
 	SET_MODEL(ENT(pev), STRING(pev->model) );
 
-	char *pszSound = ButtonSound( m_sounds );
+	const char *pszSound = ButtonSound( m_sounds );
 	PRECACHE_SOUND(pszSound);
 	pev->noise = ALLOC_STRING(pszSound);
 	m_lastUsed = 0;
@@ -1453,7 +1467,7 @@ void CMomentaryRotButton::Off( void )
 	m_lastUsed = 0;
 	if ( FBitSet( pev->spawnflags, SF_PENDULUM_AUTO_RETURN ) && m_returnSpeed > 0 )
 	{
-		SetThink(&CMomentaryRotButton:: Return );
+		SetThink( &CMomentaryRotButton::Return );
 		SetNextThink( 0.1 );
 		m_direction = -1;
 	}
@@ -1619,6 +1633,7 @@ void EXPORT CEnvSpark::SparkThink(void)
 		SetNextThink( 0.1 + RANDOM_FLOAT (0, m_flDelay) );
 	}
 }
+
 
 void EXPORT CEnvSpark::SparkStart(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {

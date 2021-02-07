@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -17,19 +17,6 @@
 
 
 #include "pm_materials.h"
-
-
-//LRC - code for Werner Spahl's mod.
-//#define XENWARRIOR
-
-#ifdef XENWARRIOR
-#define SOUND_FLASHLIGHT_IDLE   "ambience/alien_clicker1.wav"
-#define LF_FLASH_RESUME (1<<13)
-#define LF_FLASH_RESUME2 (1<<14)
-
-extern float g_fEnvFadeTime;
-#endif
-
 
 
 #define PLAYER_FATAL_FALL_SPEED		1024// approx 60 feet
@@ -104,6 +91,19 @@ enum sbar_data
 class CBasePlayer : public CBaseMonster
 {
 public:
+	
+	// Spectator camera
+	void	Observer_FindNextPlayer( bool bReverse );
+	void	Observer_HandleButtons();
+	void	Observer_SetMode( int iMode );
+	void	Observer_CheckTarget();
+	void	Observer_CheckProperties();
+	EHANDLE	m_hObserverTarget;
+	float	m_flNextObserverInput;
+	int		m_iObserverWeapon;	// weapon of current tracked target
+	int		m_iObserverLastMode;// last used observer mode
+	int		IsObserver() { return pev->iuser1; };
+
 	int					random_seed;    // See that is shared between client & server for shared weapons code
 
 	int					m_iPlayerSound;// the index of the sound list slot reserved for this player
@@ -169,6 +169,9 @@ public:
 	EHANDLE				m_pTank;				// the tank which the player is currently controlling,  NULL if no tank
 	float				m_fDeadTime;			// the time at which the player died  (used in PlayerDeathThink())
 
+	EHANDLE				m_hViewEntity;			// The view entity being used, or null if the player is using itself as the view entity
+	bool				m_bResetViewEntity;		// True if the player's view needs to be set back to the view entity
+
 	BOOL			m_fNoPlayerSound;	// a debugging feature. Player makes no sound if this is true. 
 	BOOL			m_fLongJump; // does this player have the longjump module?
 
@@ -180,7 +183,6 @@ public:
 	int			m_iClientHideHUD;
 	int			m_iFOV;			// field of view
 	int			m_iClientFOV;	// client's known FOV
-
 	// usable player items 
 	CBasePlayerItem	*m_rgpPlayerItems[MAX_ITEM_TYPES];
 	CBasePlayerItem *m_pActiveItem;
@@ -281,7 +283,7 @@ public:
 	void GiveNamedItem( const char *szName );
 	void EnableControl(BOOL fControl);
 
-	int  GiveAmmo( int iAmount, char *szName, int iMax );
+	int  GiveAmmo( int iAmount, const char *szName, int iMax );
 	void SendAmmoUpdate(void);
 
 	void WaterMove( void );
@@ -289,7 +291,7 @@ public:
 	void PlayerUse( void );
 
 	void CheckSuitUpdate();
-	void SetSuitUpdate(char *name, int fgroup, int iNoRepeat);
+	void SetSuitUpdate(const char *name, int fgroup, int iNoRepeat);
 	void UpdateGeigerCounter( void );
 	void CheckTimeBasedDamage( void );
 
@@ -311,7 +313,7 @@ public:
 	void SetCustomDecalFrames( int nFrames );
 	int GetCustomDecalFrames( void );
 
-	void CBasePlayer::TabulateAmmo( void );
+	void TabulateAmmo( void );
 
 	float m_flStartCharge;
 	float m_flAmmoStartCharge;
@@ -328,7 +330,10 @@ public:
 	char m_SbarString1[ SBAR_STRING_SIZE ];
 	
 	float m_flNextChatTime;
-	
+
+	void SetPrefsFromUserinfo(char* infobuffer);
+
+	int m_iAutoWepSwitch;
 };
 
 #define AUTOAIM_2DEGREES  0.0348994967025

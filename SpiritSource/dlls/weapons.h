@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -14,6 +14,9 @@
 ****/
 #ifndef WEAPONS_H
 #define WEAPONS_H
+
+#include <cassert> //solokiller
+
 
 #include "effects.h"
 
@@ -293,7 +296,7 @@ public:
 	static	TYPEDESCRIPTION m_SaveData[];
 
 	virtual void SetNextThink( float delay ); //LRC
-
+	
 	// generic weapon versions of CBasePlayerItem calls
 	virtual int AddToPlayer( CBasePlayer *pPlayer );
 	virtual int AddDuplicate( CBasePlayerItem *pItem );
@@ -319,7 +322,7 @@ public:
 
 	virtual BOOL CanDeploy( void );
 	virtual BOOL IsUseable( void );
-	BOOL DefaultDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt, int skiplocal = 0, int body = 0 );
+	BOOL DefaultDeploy(const char *szViewModel, const char *szWeaponModel, int iAnim, const char *szAnimExt, int skiplocal = 0, int body = 0 );
 	int DefaultReload( int iClipSize, int iAnim, float fDelay, int body = 0 );
 
 	virtual void ItemPostFrame( void );	// called each frame by the player PostThink
@@ -336,13 +339,14 @@ public:
 	
 	//LRC - used by weaponstrip
 	void DrainClip(CBasePlayer* pPlayer, BOOL keep, int i9mm, int i357, int iBuck, int iBolt, int iARGren, int iRock, int iUranium, int iSatchel, int iSnark, int iTrip, int iGren );
-	
+
 	int	PrimaryAmmoIndex(); 
 	int	SecondaryAmmoIndex(); 
 
 	void PrintState( void );
 
 	virtual CBasePlayerItem *GetWeaponPtr( void ) { return (CBasePlayerItem *)this; };
+	float GetNextAttackDelay( float delay );
 
 	float m_flPumpTime;
 	int		m_fInSpecialReload;									// Are we in the middle of a reload for the shotguns
@@ -357,6 +361,10 @@ public:
 	int		m_fInReload;										// Are we in the middle of a reload;
 
 	int		m_iDefaultAmmo;// how much ammo you get when you pick up this weapon as placed by a level designer.
+	
+	// hle time creep vars
+	float	m_flPrevPrimaryAttack;
+	float	m_flLastFireTime;			
 
 };
 
@@ -402,6 +410,67 @@ typedef struct
 
 extern MULTIDAMAGE gMultiDamage;
 
+class CWeaponRegistry //solokiller
+{
+public:
+	using FactoryFn = CBasePlayerWeapon * (*)(entvars_t* pev);
+
+public:
+	CWeaponRegistry(const char* pszMapName, const char* pszDLLClassName, FactoryFn pFactoryFn)
+		: m_pszMapName(pszMapName)
+		, m_pszDLLClassName(pszDLLClassName)
+		, m_pFactoryFn(pFactoryFn)
+	{
+		//Don't register multiple weapons with the same underlying class
+		for (CWeaponRegistry* pReg = m_pHead; pReg; pReg = pReg->GetNext())
+		{
+			if (!strcmp(pszDLLClassName, pReg->GetDLLClassName()))
+			{
+				//The problem in question is the wrong name being used to look up HUD sprites and selecting weapons
+				//Only use LINK_WEAPON_TO_CLASS for the name used for sprites, and the name the classname is set to in Spawn()
+				assert(!"Registering multiple names for the same weapon will cause problems");
+				return;
+			}
+		}
+
+		m_pNext = m_pHead;
+		m_pHead = this;
+	}
+
+	const char* GetMapName() const { return m_pszMapName; }
+
+	const char* GetDLLClassName() const { return m_pszDLLClassName; }
+
+	FactoryFn GetFactory() const { return m_pFactoryFn; }
+
+	static CWeaponRegistry* GetHead() { return m_pHead; }
+
+	CWeaponRegistry* GetNext() const { return m_pNext; }
+
+private:
+	const char* const m_pszMapName;
+	const char* const m_pszDLLClassName;
+	const FactoryFn m_pFactoryFn;
+
+	static CWeaponRegistry* m_pHead;
+
+	CWeaponRegistry* m_pNext;
+
+private:
+	//No copying
+	CWeaponRegistry(const CWeaponRegistry&);
+	CWeaponRegistry& operator=(const CWeaponRegistry&);
+};
+
+#define LINK_WEAPON_TO_CLASS( mapClassName, DLLClassName )															\
+static CBasePlayerWeapon* __Create##mapClassName( entvars_t* pev )													\
+{																													\
+	return static_cast<CBasePlayerWeapon*>( new ( pev ) DLLClassName );												\
+}																													\
+static CWeaponRegistry __g_##mapClassName##WeaponRegistry( #mapClassName, #DLLClassName, &__Create##mapClassName );	\
+LINK_ENTITY_TO_CLASS( mapClassName, DLLClassName )
+
+
 
 #define LOUD_GUN_VOLUME			1000
 #define NORMAL_GUN_VOLUME		600
@@ -441,7 +510,7 @@ class CWeaponBox : public CBaseEntity
 	void Touch( CBaseEntity *pOther );
 	void KeyValue( KeyValueData *pkvd );
 	BOOL IsEmpty( void );
-	int  GiveAmmo( int iCount, char *szName, int iMax, int *pIndex = NULL );
+	int  GiveAmmo( int iCount, const char *szName, int iMax, int *pIndex = NULL );
 	void SetObjectCollisionBox( void );
 
 public:
@@ -464,7 +533,7 @@ public:
 
 #ifdef CLIENT_DLL
 bool bIsMultiplayer ( void );
-void LoadVModel ( char *szViewModel, CBasePlayer *m_pPlayer );
+void LoadVModel ( const char *szViewModel, CBasePlayer *m_pPlayer );
 #endif
 
 class CGlock : public CBasePlayerWeapon
@@ -571,10 +640,12 @@ public:
 
 	void PrimaryAttack( void );
 	void SecondaryAttack( void );
-	int SecondaryAmmoIndex( void );
 	BOOL Deploy( void );
 	void Reload( void );
 	void WeaponIdle( void );
+
+	BOOL IsUseable() override;
+	
 	float m_flNextAnimTime;
 	int m_iShell;
 
@@ -648,6 +719,8 @@ public:
 	BOOL Deploy( );
 	void Reload( void );
 	void WeaponIdle( void );
+	void ItemPostFrame() override;
+	
 	int m_fInReload;
 	float m_flNextReload;
 	int m_iShell;
@@ -742,7 +815,7 @@ public:
 
 	int m_iTrail;
 	float m_flIgniteTime;
-	CRpg *m_pLauncher;// pointer back to the launcher that fired me. 
+	EHANDLE m_hLauncher;// handle back to the launcher that fired me. 
 };
 
 class CGauss : public CBasePlayerWeapon
@@ -820,6 +893,7 @@ public:
 	void EndAttack( void );
 	void Attack( void );
 	void PrimaryAttack( void );
+	BOOL ShouldWeaponIdle() override { return TRUE; }
 	void WeaponIdle( void );
 
 	float m_flAmmoUseTime;// since we use < 1 point of ammo per update, we subtract ammo on a timer.
@@ -867,6 +941,12 @@ public:
 	int iItemSlot( void ) { return 4; }
 	int GetItemInfo(ItemInfo *p);
 	int AddToPlayer( CBasePlayer *pPlayer );
+
+#ifndef CLIENT_DLL
+	int		Save(CSave& save);
+	int		Restore(CRestore& restore);
+	static	TYPEDESCRIPTION m_SaveData[];
+#endif
 
 	void PrimaryAttack( void );
 	void SecondaryAttack( void );

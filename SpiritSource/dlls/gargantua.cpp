@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -145,8 +145,7 @@ void CStomp::Think( void )
 	}
 	
 	// Accelerate the effect
-	pev->speed = pev->speed + (gpGlobals->frametime) * pev->framerate;
-	pev->framerate = pev->framerate + (gpGlobals->frametime) * 1500;
+	pev->speed = (pev->speed + (gpGlobals->frametime) * pev->framerate) * 1.3;
 	
 	// Move and spawn trails
 	while ( gpGlobals->time - pev->dmgtime > STOMP_INTERVAL )
@@ -162,7 +161,7 @@ void CStomp::Think( void )
 				pSprite->pev->velocity = Vector(RANDOM_FLOAT(-200,200),RANDOM_FLOAT(-200,200),175);
 				// pSprite->AnimateAndDie( RANDOM_FLOAT( 8.0, 12.0 ) );
 				pSprite->SetNextThink( 0.3 );
-				pSprite->SetThink(&CSprite:: SUB_Remove );
+				pSprite->SetThink( &CSprite::SUB_Remove );
 				pSprite->SetTransparency( kRenderTransAdd, 255, 255, 255, 255, kRenderFxFadeFast );
 			}
 		}
@@ -203,6 +202,7 @@ class CGargantua : public CBaseMonster
 public:
 	void Spawn( void );
 	void Precache( void );
+	void UpdateOnRemove() override;
 	void SetYawSpeed( void );
 	int  Classify ( void );
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
@@ -830,6 +830,18 @@ void CGargantua :: Precache()
 		PRECACHE_SOUND((char *)pBreatheSounds[i]);
 }	
 
+void CGargantua::UpdateOnRemove()
+{
+	CBaseMonster::UpdateOnRemove();
+
+	if (m_pEyeGlow)
+	{
+		UTIL_Remove(m_pEyeGlow);
+		m_pEyeGlow = nullptr;
+	}
+
+	FlameDestroy();
+}
 
 void CGargantua::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType )
 {
@@ -1149,7 +1161,7 @@ void CGargantua::RunTask( Task_t *pTask )
 			pev->rendercolor.z = 0;
 			StopAnimation();
 			SetNextThink( 0.15 );
-			SetThink(&CGargantua:: SUB_Remove );
+			SetThink( &CGargantua::SUB_Remove );
 			int i;
 			int parts = MODEL_FRAMES( gGargGibModel );
 			for ( i = 0; i < 10; i++ )
@@ -1168,7 +1180,7 @@ void CGargantua::RunTask( Task_t *pTask )
 				pGib->pev->origin = pev->origin;
 				pGib->pev->velocity = UTIL_RandomBloodVector() * RANDOM_FLOAT( 300, 500 );
 				pGib->SetNextThink( 1.25 );
-				pGib->SetThink(&CGib:: SUB_FadeOut );
+				pGib->SetThink( &CGib::SUB_FadeOut );
 			}
 			MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, pev->origin );
 				WRITE_BYTE( TE_BREAKMODEL);
@@ -1410,7 +1422,7 @@ void SpawnExplosion( Vector center, float randomRange, float time, int magnitude
 	pExplosion->pev->spawnflags |= SF_ENVEXPLOSION_NODAMAGE;
 
 	pExplosion->Spawn();
-	pExplosion->SetThink(& CBaseEntity::SUB_CallUseToggle );
+	pExplosion->SetThink( &CBaseEntity::SUB_CallUseToggle );
 	pExplosion->SetNextThink( time );
 }
 

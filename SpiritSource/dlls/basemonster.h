@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -45,6 +45,7 @@ public:
 		float				m_flFieldOfView;// width of monster's field of view ( dot product )
 		float				m_flWaitFinished;// if we're told to wait, this is the time that the wait will be over.
 		float				m_flMoveWaitFinished;
+		float				m_flLastYawTime;
 
 		Activity			m_Activity;// what the monster is doing (animation)
 		Activity			m_IdealActivity;// monster should switch to this activity
@@ -125,7 +126,7 @@ public:
 	int					m_iClass;
 	int					m_iPlayerReact;
 	virtual int			Classify( void ) { return m_iClass?m_iClass:CLASS_NONE; }
-	
+
 	virtual int	 BloodColor( void ) { return m_bloodColor; }
 
 	virtual CBaseMonster *MyMonsterPointer( void ) { return this; }
@@ -193,7 +194,7 @@ public:
 		virtual Schedule_t *GetScheduleOfType( int Type );
 		virtual Schedule_t *GetSchedule( void );
 		virtual void ScheduleChange( void ) {}
-//		virtual int CanPlaySequence( void ) { return ((m_pCine == NULL) && (m_MonsterState == MONSTERSTATE_NONE || m_MonsterState == MONSTERSTATE_IDLE || m_IdealMonsterState == MONSTERSTATE_IDLE)); }
+		// virtual int CanPlaySequence( void ) { return ((m_pCine == NULL) && (m_MonsterState == MONSTERSTATE_NONE || m_MonsterState == MONSTERSTATE_IDLE || m_IdealMonsterState == MONSTERSTATE_IDLE)); }
 		virtual int CanPlaySequence( int interruptFlags );
 //		virtual int CanPlaySequence( BOOL fDisregardState, int interruptLevel );
 		virtual int CanPlaySentence( BOOL fDisregardState ) { return IsAlive(); }
@@ -205,7 +206,7 @@ public:
 		Task_t *GetTask ( void );
 		virtual MONSTERSTATE GetIdealState ( void );
 		virtual void SetActivity ( Activity NewActivity );
-		void SetSequenceByName ( char *szSequence );
+		void SetSequenceByName ( const char *szSequence );
 		void SetState ( MONSTERSTATE State );
 		virtual void ReportAIState( void );
 
@@ -338,6 +339,7 @@ public:
 	BOOL ExitScriptedSequence( );
 	BOOL CineCleanup( );
 
+	CBaseEntity* DropItem ( const char *pszItemName, const Vector &vecPos, const Vector &vecAng );// drop an item.
 	void StartPatrol( CBaseEntity *path );
 
 	CBaseEntity* DropItem ( char *pszItemName, const Vector &vecPos, const Vector &vecAng );// drop an item.

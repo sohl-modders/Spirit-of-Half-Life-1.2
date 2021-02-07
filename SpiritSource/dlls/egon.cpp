@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -49,7 +49,7 @@ enum egon_e {
 	EGON_HOLSTER
 };
 
-LINK_ENTITY_TO_CLASS( weapon_egon, CEgon );
+LINK_WEAPON_TO_CLASS( weapon_egon, CEgon );
 
 void CEgon::Spawn( )
 {
@@ -493,9 +493,14 @@ void CEgon::DestroyEffect( void )
 
 void CEgon::WeaponIdle( void )
 {
+	if (!(m_pPlayer->m_afButtonPressed & IN_ATTACK2) && (m_pPlayer->pev->button & IN_ATTACK))
+	{
+		return;
+	}
+
 	ResetEmptySound( );
 
-	if ( m_flTimeWeaponIdle > gpGlobals->time )
+	if ( m_flTimeWeaponIdle > UTIL_WeaponTimeBase())
 		return;
 
 	if ( m_fireState != FIRE_OFF )

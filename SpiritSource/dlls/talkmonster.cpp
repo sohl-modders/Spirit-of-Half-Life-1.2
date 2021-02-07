@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -52,7 +52,7 @@ TYPEDESCRIPTION	CTalkMonster::m_SaveData[] =
 IMPLEMENT_SAVERESTORE( CTalkMonster, CBaseMonster );
 
 // array of friend names
-char *CTalkMonster::m_szFriends[TLK_CFRIENDS] = 
+const char *CTalkMonster::m_szFriends[TLK_CFRIENDS] = 
 {
 	"monster_barney",
 	"monster_scientist",
@@ -425,11 +425,11 @@ void CTalkMonster :: StartTask( Task_t *pTask )
 
 			if (yaw < 0)
 			{
-				pev->ideal_yaw = min( yaw + 45, 0 ) + pev->angles.y;
+				pev->ideal_yaw = V_min( yaw + 45, 0 ) + pev->angles.y;
 			}
 			else
 			{
-				pev->ideal_yaw = max( yaw - 45, 0 ) + pev->angles.y;
+				pev->ideal_yaw = V_max( yaw - 45, 0 ) + pev->angles.y;
 			}
 		}
 		TaskComplete();
@@ -651,7 +651,7 @@ void CTalkMonster :: Killed( entvars_t *pevAttacker, int iGib )
 CBaseEntity	*CTalkMonster::EnumFriends( CBaseEntity *pPrevious, int listNumber, BOOL bTrace )
 {
 	CBaseEntity *pFriend = pPrevious;
-	char *pszFriend;
+	const char *pszFriend;
 	TraceResult tr;
 	Vector vecCheck;
 
@@ -868,7 +868,7 @@ CBaseEntity *CTalkMonster :: FindNearestFriend(BOOL fPlayer)
 	Vector vecStart = pev->origin;
 	Vector vecCheck;
 	int i;
-	char *pszFriend;
+	const char *pszFriend;
 	int cfriends;
 
 	vecStart.z = pev->absmax.z;

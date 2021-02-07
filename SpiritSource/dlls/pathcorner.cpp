@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -111,12 +111,12 @@ void CPathCorner :: Touch( CBaseEntity *pOther )
 		ALERT(at_warning, "PathCornerTouch: no next stop specified");
 	}
 
-	pOther->m_pGoalEnt = UTIL_FindEntityByTargetname ( NULL, STRING(pev->target) );
+	pOther->m_pGoalEnt = CBaseEntity::Instance( FIND_ENTITY_BY_TARGETNAME ( NULL, STRING(pev->target) ) );
 
 	// If "next spot" was not found (does not exist - level design error)
 	if ( !pOther->m_pGoalEnt )
 	{
-		ALERT(at_debug, "PathCornerTouch--%s couldn't find next stop in path: %s", STRING(pev->classname), STRING(pev->target));
+		ALERT(at_console, "PathCornerTouch--%s couldn't find next stop in path: %s", STRING(pev->classname), STRING(pev->target));
 		return;
 	}
 
