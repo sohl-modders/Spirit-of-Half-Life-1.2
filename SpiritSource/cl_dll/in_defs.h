@@ -14,7 +14,7 @@
 // left / right
 #define	YAW		1
 // fall over
-#define	ROLL	2 
+#define	ROLL	2
 
 
 #endif

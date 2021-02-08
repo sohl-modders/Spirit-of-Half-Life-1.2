@@ -23,22 +23,22 @@
 #include "event_api.h"
 
 #include "particleman.h"
-extern IParticleMan *g_pParticleMan;
+extern IParticleMan* g_pParticleMan;
 
 //LRC - the fogging fog
 float g_fFogColor[3];
 float g_fStartDist;
 float g_fEndDist;
 //int g_iFinalStartDist; //for fading
-int g_iFinalEndDist;   //for fading
+int g_iFinalEndDist; //for fading
 float g_fFadeDuration; //negative = fading out
 
 #define MAX_CLIENTS 32
 
 #if !defined( _TFC )
-extern BEAM *pBeam;
-extern BEAM *pBeam2;
-#endif 
+extern BEAM* pBeam;
+extern BEAM* pBeam2;
+#endif
 
 #if defined( _TFC )
 void ClearEventList( void );
@@ -46,16 +46,16 @@ void ClearEventList( void );
 
 /// USER-DEFINED SERVER MESSAGE HANDLERS
 
-int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
+int CHud::MsgFunc_ResetHUD(const char* pszName, int iSize, void* pbuf)
 {
-	ASSERT( iSize == 0 );
+	ASSERT(iSize == 0);
 
 	// clear all hud data
-	HUDLIST *pList = m_pHudList;
+	HUDLIST* pList = m_pHudList;
 
-	while ( pList )
+	while (pList)
 	{
-		if ( pList->p )
+		if (pList->p)
 			pList->p->Reset();
 		pList = pList->pNext;
 	}
@@ -75,14 +75,14 @@ int CHud :: MsgFunc_ResetHUD(const char *pszName, int iSize, void *pbuf )
 
 void CAM_ToFirstPerson(void);
 
-void CHud :: MsgFunc_ViewMode( const char *pszName, int iSize, void *pbuf )
+void CHud::MsgFunc_ViewMode(const char* pszName, int iSize, void* pbuf)
 {
 	CAM_ToFirstPerson();
 }
 
-void CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
+void CHud::MsgFunc_InitHUD(const char* pszName, int iSize, void* pbuf)
 {
-//	CONPRINT("MSG:InitHUD");
+	//	CONPRINT("MSG:InitHUD");
 	//LRC - clear the fog
 	g_fStartDist = 0;
 	g_fEndDist = 0;
@@ -97,11 +97,11 @@ void CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
 	m_iSkyMode = SKY_OFF; //LRC
 
 	// prepare all hud data
-	HUDLIST *pList = m_pHudList;
+	HUDLIST* pList = m_pHudList;
 
 	while (pList)
 	{
-		if ( pList->p )
+		if (pList->p)
 			pList->p->InitHUDData();
 		pList = pList->pNext;
 	}
@@ -113,8 +113,8 @@ void CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
 	gEngfuncs.pfnServerCmd("sendevents");
 #endif
 
-	if ( g_pParticleMan )
-		 g_pParticleMan->ResetParticles();
+	if (g_pParticleMan)
+		g_pParticleMan->ResetParticles();
 
 #if !defined( _TFC )
 	//Probably not a good place to put this.
@@ -123,51 +123,51 @@ void CHud :: MsgFunc_InitHUD( const char *pszName, int iSize, void *pbuf )
 }
 
 //LRC
-void CHud :: MsgFunc_SetFog( const char *pszName, int iSize, void *pbuf )
+void CHud::MsgFunc_SetFog(const char* pszName, int iSize, void* pbuf)
 {
-//	CONPRINT("MSG:SetFog");
-	BEGIN_READ( pbuf, iSize );
+	//	CONPRINT("MSG:SetFog");
+	BEGIN_READ(pbuf, iSize);
 
-	for ( int i = 0; i < 3; i++ )
-		 g_fFogColor[ i ] = READ_BYTE();
+	for (int i = 0; i < 3; i++)
+		g_fFogColor[i] = READ_BYTE();
 
 	g_fFadeDuration = READ_SHORT();
 	g_fStartDist = READ_SHORT();
 
 	if (g_fFadeDuration > 0)
 	{
-//		// fading in
-//		g_fStartDist = READ_SHORT();
+		//		// fading in
+		//		g_fStartDist = READ_SHORT();
 		g_iFinalEndDist = READ_SHORT();
-//		g_fStartDist = FOG_LIMIT;
+		//		g_fStartDist = FOG_LIMIT;
 		g_fEndDist = FOG_LIMIT;
 	}
 	else if (g_fFadeDuration < 0)
 	{
-//		// fading out
-//		g_iFinalStartDist = 
+		//		// fading out
+		//		g_iFinalStartDist = 
 		g_iFinalEndDist = g_fEndDist = READ_SHORT();
 	}
 	else
 	{
-//		g_fStartDist = READ_SHORT();
+		//		g_fStartDist = READ_SHORT();
 		g_fEndDist = READ_SHORT();
 	}
 }
 
 //LRC
-void CHud :: MsgFunc_KeyedDLight( const char *pszName, int iSize, void *pbuf )
+void CHud::MsgFunc_KeyedDLight(const char* pszName, int iSize, void* pbuf)
 {
-//	CONPRINT("MSG:KeyedDLight");
-	BEGIN_READ( pbuf, iSize );
+	//	CONPRINT("MSG:KeyedDLight");
+	BEGIN_READ(pbuf, iSize);
 
-// as-yet unused:
-//	float	decay;				// drop this each second
-//	float	minlight;			// don't add when contributing less
-//	qboolean	dark;			// subtracts light instead of adding (doesn't seem to do anything?)
+	// as-yet unused:
+	//	float	decay;				// drop this each second
+	//	float	minlight;			// don't add when contributing less
+	//	qboolean	dark;			// subtracts light instead of adding (doesn't seem to do anything?)
 
 	int iKey = READ_BYTE();
-	dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( iKey );
+	dlight_t* dl = gEngfuncs.pEfxAPI->CL_AllocDlight(iKey);
 
 	int bActive = READ_BYTE();
 	if (!bActive)
@@ -191,32 +191,32 @@ void CHud :: MsgFunc_KeyedDLight( const char *pszName, int iSize, void *pbuf )
 }
 
 //LRC
-void CHud :: MsgFunc_AddShine( const char *pszName, int iSize, void *pbuf )
+void CHud::MsgFunc_AddShine(const char* pszName, int iSize, void* pbuf)
 {
-//	CONPRINT("MSG:AddShine");
-	BEGIN_READ( pbuf, iSize );
+	//	CONPRINT("MSG:AddShine");
+	BEGIN_READ(pbuf, iSize);
 
 	float fScale = READ_BYTE();
-	float fAlpha = READ_BYTE()/255.0;
+	float fAlpha = READ_BYTE() / 255.0;
 	float fMinX = READ_COORD();
 	float fMaxX = READ_COORD();
 	float fMinY = READ_COORD();
 	float fMaxY = READ_COORD();
 	float fZ = READ_COORD();
-	char *szSprite = READ_STRING();
+	char* szSprite = READ_STRING();
 
-//	gEngfuncs.Con_Printf("minx %f, maxx %f, miny %f, maxy %f\n", fMinX, fMaxX, fMinY, fMaxY);
+	//	gEngfuncs.Con_Printf("minx %f, maxx %f, miny %f, maxy %f\n", fMinX, fMaxX, fMinY, fMaxY);
 
-	CShinySurface *pSurface = new CShinySurface(fScale, fAlpha, fMinX, fMaxX, fMinY, fMaxY, fZ, szSprite);
+	CShinySurface* pSurface = new CShinySurface(fScale, fAlpha, fMinX, fMaxX, fMinY, fMaxY, fZ, szSprite);
 	pSurface->m_pNext = m_pShinySurface;
 	m_pShinySurface = pSurface;
 }
 
 //LRC
-void CHud :: MsgFunc_SetSky( const char *pszName, int iSize, void *pbuf )
+void CHud::MsgFunc_SetSky(const char* pszName, int iSize, void* pbuf)
 {
-//	CONPRINT("MSG:SetSky");
-	BEGIN_READ( pbuf, iSize );
+	//	CONPRINT("MSG:SetSky");
+	BEGIN_READ(pbuf, iSize);
 
 	m_iSkyMode = READ_BYTE();
 	m_vecSkyPos.x = READ_COORD();
@@ -224,27 +224,27 @@ void CHud :: MsgFunc_SetSky( const char *pszName, int iSize, void *pbuf )
 	m_vecSkyPos.z = READ_COORD();
 }
 
-int CHud :: MsgFunc_GameMode(const char *pszName, int iSize, void *pbuf )
+int CHud::MsgFunc_GameMode(const char* pszName, int iSize, void* pbuf)
 {
-	BEGIN_READ( pbuf, iSize );
+	BEGIN_READ(pbuf, iSize);
 	m_Teamplay = READ_BYTE();
 
 	return 1;
 }
 
 
-int CHud :: MsgFunc_Damage(const char *pszName, int iSize, void *pbuf )
+int CHud::MsgFunc_Damage(const char* pszName, int iSize, void* pbuf)
 {
-	int		armor, blood;
-	Vector	from;
-	int		i;
-	float	count;
-	
-	BEGIN_READ( pbuf, iSize );
+	int armor, blood;
+	Vector from;
+	int i;
+	float count;
+
+	BEGIN_READ(pbuf, iSize);
 	armor = READ_BYTE();
 	blood = READ_BYTE();
 
-	for (i=0 ; i<3 ; i++)
+	for (i = 0; i < 3; i++)
 		from[i] = READ_COORD();
 
 	count = (blood * 0.5) + (armor * 0.5);
@@ -257,12 +257,12 @@ int CHud :: MsgFunc_Damage(const char *pszName, int iSize, void *pbuf )
 	return 1;
 }
 
-int CHud :: MsgFunc_Concuss( const char *pszName, int iSize, void *pbuf )
+int CHud::MsgFunc_Concuss(const char* pszName, int iSize, void* pbuf)
 {
-	BEGIN_READ( pbuf, iSize );
+	BEGIN_READ(pbuf, iSize);
 	m_iConcussionEffect = READ_BYTE();
 	if (m_iConcussionEffect)
-		this->m_StatusIcons.EnableIcon("dmg_concuss",255,160,0);
+		this->m_StatusIcons.EnableIcon("dmg_concuss", 255, 160, 0);
 	else
 		this->m_StatusIcons.DisableIcon("dmg_concuss");
 	return 1;
@@ -271,9 +271,9 @@ int CHud :: MsgFunc_Concuss( const char *pszName, int iSize, void *pbuf )
 // In view.cpp
 extern vec3_t v_origin;
 
-int CHud::MsgFunc_Sound2D( const char* name, int size, void* buffer )
+int CHud::MsgFunc_Sound2D(const char* name, int size, void* buffer)
 {
-	BEGIN_READ( buffer, size );
+	BEGIN_READ(buffer, size);
 
 	float soundVolume = READ_BYTE() / 255.f;
 	int soundChannel = READ_BYTE();
@@ -282,7 +282,7 @@ int CHud::MsgFunc_Sound2D( const char* name, int size, void* buffer )
 
 	int index = gEngfuncs.GetLocalPlayer()->index;
 
-	gEngfuncs.pEventAPI->EV_PlaySound( index, v_origin, soundChannel, soundName, soundVolume, ATTN_NONE, 0, soundPitch );
+	gEngfuncs.pEventAPI->EV_PlaySound(index, v_origin, soundChannel, soundName, soundVolume, ATTN_NONE, 0, soundPitch);
 
 	return 1;
 }

@@ -34,14 +34,14 @@ cl_entity_t* player = nullptr;
 
 playermove_t* playerData = nullptr;
 
-Vector playerVelocity = Vector( 0, 0, 0 );
+Vector playerVelocity = Vector(0, 0, 0);
 
 physent_t* ladders[32];
 
 // Referenced in pm_shared.cpp
-void DebugOverlay_UpdatePlayerMovementData( playermove_t* data )
+void DebugOverlay_UpdatePlayerMovementData(playermove_t* data)
 {
-	if ( !data )
+	if (!data)
 		return;
 
 	playerVelocity = data->velocity;
@@ -49,41 +49,42 @@ void DebugOverlay_UpdatePlayerMovementData( playermove_t* data )
 	playerData = data;
 }
 
-void RenderTouches( triangleapi_t* r )
+void RenderTouches(triangleapi_t* r)
 {
-	if ( !playerData )
+	if (!playerData)
 		return;
 
-	r->Begin( TRI_LINES );
-	r->Color4ub( 64, 255, 64, 255 );
+	r->Begin(TRI_LINES);
+	r->Color4ub(64, 255, 64, 255);
 
-	for ( int i = 0; i < playerData->numtouch; i++ )
+	for (int i = 0; i < playerData->numtouch; i++)
 	{
 		pmtrace_t* trace = playerData->touchindex;
-		RenderPoint( trace->endpos );
+		RenderPoint(trace->endpos);
 	}
 
 	r->End();
 }
 
-void RenderVelocity( triangleapi_t* r )
+void RenderVelocity(triangleapi_t* r)
 {
 	Vector playerPosition = player->curstate.origin;
 	Vector playerForward;
-	AngleVectors( player->curstate.angles, playerForward, nullptr, nullptr );
+	AngleVectors(player->curstate.angles, playerForward, nullptr, nullptr);
 	Vector playerWorldVelocity = playerPosition + playerVelocity;
 
-	r->Begin( TRI_LINES );
-	
-	r->Color4ub( 255, 0, 0, 255 );
-	RenderLine( playerPosition, playerWorldVelocity );
-	RenderPoint( playerWorldVelocity );
-	
-	r->Color4ub( 120, 100, 0, 255 );
-	RenderLine( playerPosition, playerPosition + playerForward * 64 );
-	Vector vecPoint = Vector( (playerPosition.x + playerForward.x) * 64.0f, (playerPosition.y + playerForward.y) * 64.0f, (playerPosition.z + playerForward.z) * 64.0f );
-	RenderPoint( vecPoint );
-	
+	r->Begin(TRI_LINES);
+
+	r->Color4ub(255, 0, 0, 255);
+	RenderLine(playerPosition, playerWorldVelocity);
+	RenderPoint(playerWorldVelocity);
+
+	r->Color4ub(120, 100, 0, 255);
+	RenderLine(playerPosition, playerPosition + playerForward * 64);
+	Vector vecPoint = Vector((playerPosition.x + playerForward.x) * 64.0f, (playerPosition.y + playerForward.y) * 64.0f,
+	                         (playerPosition.z + playerForward.z) * 64.0f);
+	RenderPoint(vecPoint);
+
 	r->End();
 }
 
@@ -96,16 +97,14 @@ void RenderDebugWireframe_Movement()
 {
 	triangleapi_t* r = gEngfuncs.pTriAPI;
 
-	if ( !player )
+	if (!player)
 		player = gEngfuncs.GetLocalPlayer();
 
-	model_t* texture = IEngineStudio.Mod_ForName( "sprites/camnoise.spr", 0 );
+	model_t* texture = IEngineStudio.Mod_ForName("sprites/camnoise.spr", 0);
 
-	if ( texture )
-		r->SpriteTexture( texture, 0 );
+	if (texture)
+		r->SpriteTexture(texture, 0);
 
-	RenderVelocity( r );
-	RenderTouches( r );
+	RenderVelocity(r);
+	RenderTouches(r);
 }
-
-

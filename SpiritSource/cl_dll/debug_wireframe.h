@@ -11,9 +11,9 @@ enum DebugWireframeModes
 	DebugWireframe_Unknown
 };
 
-DebugWireframeModes GetModeFromString( const char* cvarString );
+DebugWireframeModes GetModeFromString(const char* cvarString);
 
-bool GetStateFromString( const char* cvarString );
+bool GetStateFromString(const char* cvarString);
 
 void RenderDebugWireframe_Clipnodes();
 void RenderDebugWireframe_Movement();
@@ -21,7 +21,7 @@ void RenderDebugWireframe_BoundingBox();
 
 void ThinkDebugWireframe();
 
-bool DebugWireState( int state );
+bool DebugWireState(int state);
 
 void RenderDebugWireframe();
 

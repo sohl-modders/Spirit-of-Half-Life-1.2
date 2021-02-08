@@ -27,7 +27,7 @@
 
 // Holds engine functionality callbacks
 enginefuncs_t g_engfuncs;
-globalvars_t  *gpGlobals;
+globalvars_t* gpGlobals;
 
 #undef DLLEXPORT
 #ifdef _WIN32
@@ -40,24 +40,22 @@ globalvars_t  *gpGlobals;
 
 // Required DLL entry point
 BOOL WINAPI DllMain(
-   HINSTANCE hinstDLL,
-   DWORD fdwReason,
-   LPVOID lpvReserved)
+	HINSTANCE hinstDLL,
+	DWORD fdwReason,
+	LPVOID lpvReserved)
 {
-	if      (fdwReason == DLL_PROCESS_ATTACH)
-    {
-    }
+	if (fdwReason == DLL_PROCESS_ATTACH)
+	{
+	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
-    {
-    }
+	{
+	}
 	return TRUE;
 }
 #endif
 
-extern "C" void DLLEXPORT GiveFnptrsToDll(	enginefuncs_t* pengfuncsFromEngine, globalvars_t *pGlobals )
+extern "C" void DLLEXPORT GiveFnptrsToDll(enginefuncs_t* pengfuncsFromEngine, globalvars_t* pGlobals)
 {
 	memcpy(&g_engfuncs, pengfuncsFromEngine, sizeof(enginefuncs_t));
 	gpGlobals = pGlobals;
 }
-
-
