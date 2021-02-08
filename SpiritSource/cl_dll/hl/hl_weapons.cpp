@@ -201,7 +201,7 @@ BOOL CBasePlayerWeapon::DefaultReload(int iClipSize, int iAnim, float fDelay, in
 
 	int j = V_min(iClipSize - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]);
 
-	if (j == 0)
+	if (j <= 0)
 		return FALSE;
 
 	m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + fDelay;
