@@ -40,6 +40,12 @@
     <Filter Include="Header Files\game_shared">
       <UniqueIdentifier>{b37bebe0-bf18-4194-be5b-8a268ae781b4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\public">
+      <UniqueIdentifier>{4f6cd964-48dc-4b4d-a7b3-43bc006126f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\public\steam">
+      <UniqueIdentifier>{1489a02a-db1e-4933-8184-708e90885c04}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\dlls\aflock.cpp">
@@ -724,6 +730,33 @@
     </ClInclude>
     <ClInclude Include="..\..\game_shared\voice_vgui_tweakdlg.h">
       <Filter>Header Files\game_shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\archtypes.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\FileSystem.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\gameui.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\interface.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\keydefs.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\particleman.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\pman_particlemem.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\pman_triangleffect.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\steam\steamtypes.h">
+      <Filter>Header Files\public\steam</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

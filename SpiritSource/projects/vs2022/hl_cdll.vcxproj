@@ -313,6 +313,16 @@
     <ClInclude Include="..\..\pm_shared\pm_materials.h" />
     <ClInclude Include="..\..\pm_shared\pm_movevars.h" />
     <ClInclude Include="..\..\pm_shared\pm_shared.h" />
+    <ClInclude Include="..\..\public\archtypes.h" />
+    <ClInclude Include="..\..\public\cl_dll\IGameClientExports.h" />
+    <ClInclude Include="..\..\public\FileSystem.h" />
+    <ClInclude Include="..\..\public\gameui.h" />
+    <ClInclude Include="..\..\public\interface.h" />
+    <ClInclude Include="..\..\public\keydefs.h" />
+    <ClInclude Include="..\..\public\particleman.h" />
+    <ClInclude Include="..\..\public\pman_particlemem.h" />
+    <ClInclude Include="..\..\public\pman_triangleffect.h" />
+    <ClInclude Include="..\..\public\steam\steamtypes.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\lib\public\game_controls.lib" />

@@ -615,6 +615,36 @@
     <ClInclude Include="..\..\engine\studio.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\public\archtypes.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\FileSystem.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\gameui.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\interface.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\keydefs.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\particleman.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\pman_particlemem.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\pman_triangleffect.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\steam\steamtypes.h">
+      <Filter>Header Files\public\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\cl_dll\IGameClientExports.h">
+      <Filter>Header Files\public\cl_dll</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\lib\public\game_controls.lib" />
@@ -670,6 +700,15 @@
     </Filter>
     <Filter Include="Header Files\engine">
       <UniqueIdentifier>{9d12d6be-4dde-4606-919d-0920c8a7719b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\public">
+      <UniqueIdentifier>{5505749c-36aa-4de7-9ae7-26d078fba78d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\public\cl_dll">
+      <UniqueIdentifier>{180df3e8-ad66-4aad-a97b-0cb7998c70b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\public\steam">
+      <UniqueIdentifier>{06079a22-495f-4c81-ad15-af815bbe6a87}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
