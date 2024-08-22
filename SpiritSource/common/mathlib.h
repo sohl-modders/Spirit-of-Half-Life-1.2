@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 // mathlib.h
 
 typedef float vec_t;
@@ -108,8 +114,12 @@ void __inline restore_fpu_cw(void)
 	_asm	fldcw	old_cw
 }
 #else
-#define set_fpu_cw() /* */
+#if HL_SDK25
+#define quick_ftol(f) ((int)(f))
+#else
 #define quick_ftol(f) ftol(f)
+#endif
+#define set_fpu_cw() /* */
 #define restore_fpu_cw() /* */
 #endif
 

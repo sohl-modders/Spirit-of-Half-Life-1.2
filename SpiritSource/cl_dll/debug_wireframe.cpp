@@ -30,7 +30,7 @@ DebugWireframeModes GetModeFromString(const char* cvarString)
 	}
 
 	// Find the actual name of the mode
-	for (int i = 0; i <= strlen(cvarString); i++)
+	for (int i = 0; i <= (signed)strlen(cvarString); i++)
 	{
 		if (cvarString[i] == ' ')
 			break;
@@ -92,7 +92,7 @@ bool GetStateFromString(const char* cvarString)
 	// OR
 	// debug_wireframe_set "clipnodes 0"
 	// Same outcome, really!
-	for (int i = 0; i <= strlen(cvarString); i++)
+	for (int i = 0; i <= (signed)strlen(cvarString); i++)
 	{
 		if (cvarString[i] >= '0' && cvarString[i] <= '9')
 		{

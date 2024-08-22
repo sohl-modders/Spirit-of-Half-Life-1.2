@@ -645,6 +645,15 @@
     <ClInclude Include="..\..\public\cl_dll\IGameClientExports.h">
       <Filter>Header Files\public\cl_dll</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\public\commonmacros.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\basetypes.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\tier1\interface.h">
+      <Filter>Header Files\public\tier1</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\lib\public\game_controls.lib" />
@@ -709,6 +718,9 @@
     </Filter>
     <Filter Include="Header Files\public\steam">
       <UniqueIdentifier>{06079a22-495f-4c81-ad15-af815bbe6a87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\public\tier1">
+      <UniqueIdentifier>{1daef9c9-7585-4e2f-b9a5-18726e0f8f8c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

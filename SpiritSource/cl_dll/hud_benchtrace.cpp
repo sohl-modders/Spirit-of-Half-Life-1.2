@@ -5,6 +5,7 @@
 #ifdef _WIN32
 #include "winsani_in.h"
 #include <windows.h>
+#include <iostream>
 #include "winsani_out.h"
 #else
 #include "port.h"
@@ -67,7 +68,18 @@ int Trace_GetHopCount(char* pServer, int nMaxHops)
 	BOOL ( WINAPI *pfnICMPCloseFile )(HANDLE);
 	DWORD (WINAPI *pfnICMPSendEcho)(HANDLE, DWORD, LPVOID, WORD, LPVOID, LPVOID, DWORD, DWORD);
 
+#ifdef HL_SDK25
+#if !defined ( _WIN32 )
+	return GetProcAddress(GetModuleHandle(pModuleName), pName);
+#else
+	int wchars_num = MultiByteToWideChar(CP_UTF8, 0, "ICMP.DLL", -1, NULL, 0);
+	wchar_t* wpath = new wchar_t[wchars_num];
+	MultiByteToWideChar(CP_UTF8, 0, "ICMP.DLL", -1, wpath, wchars_num);
+	hICMP = ::LoadLibrary(wpath);
+#endif
+#else
 	hICMP = ::LoadLibrary("ICMP.DLL");
+#endif
 
 	pfnICMPCreateFile = (HANDLE ( WINAPI *)(VOID))::GetProcAddress(hICMP, "IcmpCreateFile");
 	pfnICMPCloseFile = (BOOL ( WINAPI *)(HANDLE))::GetProcAddress(hICMP, "IcmpCloseHandle");

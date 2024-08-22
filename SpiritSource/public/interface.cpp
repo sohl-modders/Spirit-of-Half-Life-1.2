@@ -1,37 +1,45 @@
+//========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//=============================================================================
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "interface.h"
 
 #if !defined ( _WIN32 )
-// Linux doesn't have this function so this emulates its functionality
-//
-//
-void *GetModuleHandle(const char *name)
-{
-        void *handle;
+	// Linux doesn't have this function so this emulates its functionality
+	void* GetModuleHandle(const char* name)
+	{
+		void* handle;
+		if (name == NULL)
+		{
+			// hmm, how can this be handled under linux....
+			// is it even needed?
+			return NULL;
+		}
 
+		if ((handle = dlopen(name, RTLD_NOW)) == NULL)
+		{
+			//printf("Error:%s\n",dlerror());
+					// couldn't open this file
+			return NULL;
+		}
 
-        if( name == NULL )
-        {
-                // hmm, how can this be handled under linux....
-                // is it even needed?
-                return NULL;
-        }
-
-        if( (handle=dlopen(name, RTLD_NOW))==NULL)
-        {   
-		//printf("Error:%s\n",dlerror());
-                // couldn't open this file
-                return NULL;
-        }
-
-        // read "man dlopen" for details
-        // in short dlopen() inc a ref count
-        // so dec the ref count by performing the close
-        dlclose(handle);
-       return handle;
-}
+		// read "man dlopen" for details
+		// in short dlopen() inc a ref count
+		// so dec the ref count by performing the close
+		dlclose(handle);
+		return handle;
+	}
 #endif
 
 // ------------------------------------------------------------------------------------ //
@@ -39,20 +47,21 @@ void *GetModuleHandle(const char *name)
 // ------------------------------------------------------------------------------------ //
 InterfaceReg* InterfaceReg::s_pInterfaceRegs = NULL;
 
-
-InterfaceReg::InterfaceReg(InstantiateInterfaceFn fn, const char* pName) :
-	m_pName(pName)
+InterfaceReg::InterfaceReg(InstantiateInterfaceFn fn, const char* pName) : m_pName(pName)
 {
 	m_CreateFn = fn;
 	m_pNext = s_pInterfaceRegs;
 	s_pInterfaceRegs = this;
 }
 
-
 // ------------------------------------------------------------------------------------ //
 // CreateInterface.
 // ------------------------------------------------------------------------------------ //
+#if HL_SDK25
+EXPORT_FUNCTION void *CreateInterface(const char *pName, int* pReturnCode)
+#else
 EXPORT_FUNCTION IBaseInterface* CreateInterface(const char* pName, int* pReturnCode)
+#endif
 {
 	InterfaceReg* pCur;
 
@@ -72,32 +81,35 @@ EXPORT_FUNCTION IBaseInterface* CreateInterface(const char* pName, int* pReturnC
 	{
 		*pReturnCode = IFACE_FAILED;
 	}
+
 	return NULL;
 }
 
-#ifdef LINUX
-static IBaseInterface *CreateInterfaceLocal( const char *pName, int *pReturnCode )
-{
-	InterfaceReg *pCur;
-	
-	for(pCur=InterfaceReg::s_pInterfaceRegs; pCur; pCur=pCur->m_pNext)
+#ifndef HL_SDK25
+	#ifdef LINUX
+	static IBaseInterface *CreateInterfaceLocal( const char *pName, int *pReturnCode )
 	{
-		if(strcmp(pCur->m_pName, pName) == 0)
+		InterfaceReg *pCur;
+		
+		for(pCur=InterfaceReg::s_pInterfaceRegs; pCur; pCur=pCur->m_pNext)
 		{
-			if ( pReturnCode )
+			if(strcmp(pCur->m_pName, pName) == 0)
 			{
-				*pReturnCode = IFACE_OK;
+				if ( pReturnCode )
+				{
+					*pReturnCode = IFACE_OK;
+				}
+				return pCur->m_CreateFn();
 			}
-			return pCur->m_CreateFn();
 		}
+		
+		if ( pReturnCode )
+		{
+			*pReturnCode = IFACE_FAILED;
+		}
+		return NULL;	
 	}
-	
-	if ( pReturnCode )
-	{
-		*pReturnCode = IFACE_FAILED;
-	}
-	return NULL;	
-}
+	#endif
 #endif
 
 #ifdef _WIN32
@@ -113,7 +125,18 @@ static IBaseInterface *CreateInterfaceLocal( const char *pName, int *pReturnCode
 //static hlds_run wants to use this function 
 static void* Sys_GetProcAddress(const char* pModuleName, const char* pName)
 {
+#ifdef HL_SDK25
+	#if !defined ( _WIN32 )
+		return GetProcAddress(GetModuleHandle(pModuleName), pName);
+	#else
+		int wchars_num = MultiByteToWideChar(CP_UTF8, 0, pModuleName, -1, NULL, 0);
+		wchar_t* wpath = new wchar_t[wchars_num];
+		MultiByteToWideChar(CP_UTF8, 0, pModuleName, -1, wpath, wchars_num);
+		return GetProcAddress(GetModuleHandle(wpath), pName);
+	#endif
+#else
 	return GetProcAddress(GetModuleHandle(pModuleName), pName);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -139,7 +162,14 @@ void* Sys_GetProcAddress(void* pModuleHandle, const char* pName)
 CSysModule* Sys_LoadModule(const char* pModuleName)
 {
 #if defined ( _WIN32 )
-	HMODULE hDLL = LoadLibrary(pModuleName);
+	#ifdef HL_SDK25
+		int wchars_num = MultiByteToWideChar(CP_UTF8, 0, pModuleName, -1, NULL, 0);
+		wchar_t* wpath = new wchar_t[wchars_num];
+		MultiByteToWideChar(CP_UTF8, 0, pModuleName, -1, wpath, wchars_num);
+		HMODULE hDLL = LoadLibrary(wpath);
+	#else
+		HMODULE hDLL = LoadLibrary(pModuleName);
+	#endif
 #else
 	HMODULE hDLL  = NULL;
 	char szAbsoluteModuleName[1024];
@@ -174,14 +204,17 @@ CSysModule* Sys_LoadModule(const char* pModuleName)
 		char str[512];
 #if defined ( _WIN32 )
 		_snprintf(str, sizeof(str), "%s.dll", pModuleName);
-		hDLL = LoadLibrary(str);
+		int wchars_num = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+		wchar_t* wpath = new wchar_t[wchars_num];
+		MultiByteToWideChar(CP_UTF8, 0, str, -1, wpath, wchars_num);
+		hDLL = LoadLibrary(wpath);
 #elif defined(OSX)
-		printf("Error:%s\n",dlerror());
-		_snprintf( str, sizeof(str), "%s.dylib", szAbsoluteModuleName );
-		hDLL = dlopen(str, RTLD_NOW);		
+		printf("Error:%s\n", dlerror());
+		_snprintf(str, sizeof(str), "%s.dylib", szAbsoluteModuleName);
+		hDLL = dlopen(str, RTLD_NOW);
 #else
-		printf("Error:%s\n",dlerror());
-		_snprintf( str, sizeof(str), "%s.so", szAbsoluteModuleName );
+		printf("Error:%s\n", dlerror());
+		_snprintf(str, sizeof(str), "%s.so", szAbsoluteModuleName);
 		hDLL = dlopen(str, RTLD_NOW);
 #endif
 	}
@@ -240,9 +273,14 @@ CreateInterfaceFn Sys_GetFactory(CSysModule* pModule)
 //-----------------------------------------------------------------------------
 CreateInterfaceFn Sys_GetFactoryThis(void)
 {
-#ifdef LINUX
-	return CreateInterfaceLocal;
+#ifndef HL_SDK25
+	#ifdef LINUX
+		return CreateInterfaceLocal;
+	#else
+		return CreateInterface;
+	#endif
 #else
+	// BEN-NOTE: unifying this on all platforms
 	return CreateInterface;
 #endif
 }

@@ -12,9 +12,15 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #ifndef CONST_H
 #define CONST_H
-//
+
 // Constants shared by the engine and dlls
 // This header file included by engine files and DLL files.
 // Most came from server.h
@@ -116,7 +122,10 @@
 
 // entity flags
 #define EFLAG_SLERP				1	// do studio interpolation of this entity
-		
+#if HL_SDK25
+#define EFLAG_FLESH_SOUND		2	// JoshA: Whether this entity should sound like flesh. (ie. pEntity->Classify() != CLASS_NONE && pEntity->Classify() != CLASS_MACHINE)
+#endif
+
 //
 // temp entity events
 //

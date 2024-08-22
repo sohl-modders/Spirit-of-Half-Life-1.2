@@ -1,9 +1,14 @@
-//========= Copyright � 1996-2001, Valve LLC, All rights reserved. ============
+//========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //=============================================================================
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
 
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
@@ -178,6 +183,10 @@ public:
 	virtual FileHandle_t	OpenFromCacheForRead( const char *pFileName, const char *pOptions, const char *pathID = 0L ) = 0;
 
 	virtual void			AddSearchPathNoWrite( const char *pPath, const char *pathID ) = 0;
+
+#if HL_SDK25
+	virtual long			GetFileModificationTime(const char* pFileName) = 0;
+#endif
 };
 
 // Steam3/Src compat

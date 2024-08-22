@@ -1,3 +1,15 @@
+//========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//=============================================================================
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #ifndef PARTICLEMEM_H__
 #define PARTICLEMEM_H__
 
@@ -5,6 +17,10 @@
 #pragma once
 #endif
 
+#if HL_SDK25
+#undef min
+#undef max
+#endif
 #include <vector>
 
 class CCoreTriangleEffect;

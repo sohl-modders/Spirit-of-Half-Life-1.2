@@ -46,6 +46,9 @@
     <Filter Include="Header Files\public\steam">
       <UniqueIdentifier>{1489a02a-db1e-4933-8184-708e90885c04}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\public\tier1">
+      <UniqueIdentifier>{44d3e275-8789-4c22-a0ac-6975f92e7155}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\dlls\aflock.cpp">
@@ -757,6 +760,15 @@
     </ClInclude>
     <ClInclude Include="..\..\public\steam\steamtypes.h">
       <Filter>Header Files\public\steam</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\basetypes.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\commonmacros.h">
+      <Filter>Header Files\public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\public\tier1\interface.h">
+      <Filter>Header Files\public\tier1</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

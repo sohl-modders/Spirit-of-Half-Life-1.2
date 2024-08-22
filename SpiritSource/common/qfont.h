@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #if !defined( QFONTH )
 #define QFONTH
 #ifdef _WIN32
@@ -21,7 +27,7 @@
 // Font stuff
 
 #define NUM_GLYPHS 256
-// does not exist: // #include "basetypes.h"
+#include "basetypes.h"
 
 typedef struct
 {
@@ -35,7 +41,11 @@ typedef struct qfont_s
 	int			rowcount;
 	int			rowheight;
 	charinfo	fontinfo[ NUM_GLYPHS ];
+#if HL_SDK25
+	byte 		data[4];
+#else
 	unsigned char data[4];
+#endif
 } qfont_t;
 
 #endif // qfont.h
