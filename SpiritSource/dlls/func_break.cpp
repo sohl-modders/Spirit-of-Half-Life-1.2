@@ -711,7 +711,9 @@ int CBreakable::TakeDamage(entvars_t* pevInflictor, entvars_t* pevAttacker, floa
 	g_vecAttackDir = vecTemp.Normalize();
 
 	// do the damage
-	pev->health -= flDamage;
+	if (pev->takedamage)
+		pev->health -= flDamage;
+
 	if (pev->health <= 0)
 	{
 		// LRC - Die() does everything necessary
