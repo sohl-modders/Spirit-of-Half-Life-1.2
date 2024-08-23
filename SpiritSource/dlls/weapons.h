@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #ifndef WEAPONS_H
 #define WEAPONS_H
 
@@ -39,7 +45,11 @@ public:
 	static void UseSatchelCharges(entvars_t* pevOwner, SATCHELCODE code);
 
 	void Explode(Vector vecSrc, Vector vecAim);
+#if HL_SDK25
+	virtual void Explode(TraceResult* pTrace, int bitsDamageType);
+#else
 	void Explode(TraceResult* pTrace, int bitsDamageType);
+#endif
 	void EXPORT Smoke(void);
 
 	void EXPORT BounceTouch(CBaseEntity* pOther);
@@ -102,7 +112,11 @@ public:
 #define RPG_WEIGHT			20
 #define GAUSS_WEIGHT		20
 #define EGON_WEIGHT			20
+#if HL_SDK25
+#define HORNETGUN_WEIGHT	15
+#else
 #define HORNETGUN_WEIGHT	10
+#endif
 #define HANDGRENADE_WEIGHT	5
 #define SNARK_WEIGHT		5
 #define SATCHEL_WEIGHT		-10
@@ -199,6 +213,9 @@ typedef enum
 #define ITEM_FLAG_NOAUTOSWITCHEMPTY	4
 #define ITEM_FLAG_LIMITINWORLD		8
 #define ITEM_FLAG_EXHAUSTIBLE		16 // A player can totally exhaust their ammo supply and lose this weapon
+#if HL_SDK25
+#define ITEM_FLAG_NOAUTOSWITCHTO	32
+#endif
 
 #define WEAPON_IS_ONTARGET 0x40
 
@@ -730,7 +747,6 @@ public:
 	static TYPEDESCRIPTION m_SaveData[];
 #endif
 
-
 	void Spawn(void);
 	void Precache(void);
 	int iItemSlot() { return 3; }
@@ -830,6 +846,10 @@ public:
 	static TYPEDESCRIPTION m_SaveData[];
 	void Spawn(void);
 	void Precache(void);
+#if HL_SDK25
+	virtual void Explode(TraceResult* pTrace, int bitsDamageType);
+	CRpg* GetLauncher();
+#endif
 	void EXPORT FollowThink(void);
 	void EXPORT IgniteThink(void);
 	void EXPORT RocketTouch(CBaseEntity* pOther);
@@ -926,6 +946,9 @@ public:
 	void Fire(const Vector& vecOrigSrc, const Vector& vecDir);
 
 	BOOL HasAmmo(void);
+#if HL_SDK25
+	BOOL CanHolster();
+#endif
 
 	void UseAmmo(int count);
 
@@ -1114,6 +1137,10 @@ public:
 		return FALSE;
 #endif
 	}
+
+#if HL_SDK25
+	void AngleVectors(const vec3_t angles, vec3_t& forward, vec3_t& right, vec3_t& up);
+#endif
 
 private:
 	unsigned short m_usSnarkFire;

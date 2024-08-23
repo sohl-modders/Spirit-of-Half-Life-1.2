@@ -12,6 +12,12 @@
 *   use or distribution of this code by or to any unlicensed person is illegal.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include	"extdll.h"
 #include	"util.h"
 #include	"cbase.h"
@@ -424,11 +430,11 @@ void CTalkMonster::StartTask(Task_t* pTask)
 
 			if (yaw < 0)
 			{
-				pev->ideal_yaw = V_min(yaw + 45, 0) + pev->angles.y;
+				pev->ideal_yaw = V_min(yaw + 45.0f, 0.0f) + pev->angles.y;
 			}
 			else
 			{
-				pev->ideal_yaw = V_max(yaw - 45, 0) + pev->angles.y;
+				pev->ideal_yaw = V_max(yaw - 45.0f, 0.0f) + pev->angles.y;
 			}
 		}
 		TaskComplete();
@@ -1458,7 +1464,11 @@ BOOL CTalkMonster::CanFollow(void)
 {
 	if (m_MonsterState == MONSTERSTATE_SCRIPT)
 	{
+#if HL_SDK25
+		if (!m_pCine || !m_pCine->CanInterrupt())
+#else
 		if (!m_pCine->CanInterrupt())
+#endif
 			return FALSE;
 	}
 

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"

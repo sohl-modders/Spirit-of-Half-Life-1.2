@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #if !defined( OEM_BUILD )
 
 #include "extdll.h"
@@ -176,15 +182,42 @@ void CRpgRocket::Spawn(void)
 //=========================================================
 void CRpgRocket::RocketTouch(CBaseEntity* pOther)
 {
+#if HL_SDK25
+	if (GetLauncher())
+	{
+		GetLauncher()->m_cActiveRockets--;
+		m_hLauncher = NULL;
+	}
+#else
 	if (CRpg* pLauncher = static_cast<CRpg*>(static_cast<CBaseEntity*>(m_hLauncher)))
 	{
 		// my launcher is still around, tell it I'm dead.
 		pLauncher->m_cActiveRockets--;
 	}
+#endif
 
 	STOP_SOUND(edict(), CHAN_VOICE, "weapons/rocket1.wav");
 	ExplodeTouch(pOther);
 }
+
+#if HL_SDK25
+void CRpgRocket::Explode(TraceResult* pTrace, int bitsDamageType)
+{
+	//ALERT( at_console, "RpgRocket Explode, m_pLauncher: %u\n", GetLauncher() );
+
+	STOP_SOUND(edict(), CHAN_VOICE, "weapons/rocket1.wav");
+
+	if (GetLauncher())
+	{
+		// my launcher is still around, tell it I'm dead.
+		GetLauncher()->m_cActiveRockets--;
+		m_hLauncher = NULL;
+	}
+
+	CGrenade::Explode(pTrace, bitsDamageType);
+}
+
+#endif
 
 //=========================================================
 //=========================================================
@@ -195,6 +228,15 @@ void CRpgRocket::Precache(void)
 	PRECACHE_SOUND("weapons/rocket1.wav");
 }
 
+#if HL_SDK25
+CRpg* CRpgRocket::GetLauncher()
+{
+	if (!m_hLauncher)
+		return NULL;
+
+	return (CRpg*)((CBaseEntity*)m_hLauncher);
+}
+#endif
 
 void CRpgRocket::IgniteThink(void)
 {
@@ -245,7 +287,20 @@ void CRpgRocket::FollowThink(void)
 	// Examine all entities within a reasonable radius
 	while ((pOther = UTIL_FindEntityByClassname(pOther, "laser_spot")) != NULL)
 	{
+#if HL_SDK25
+		Vector vSpotLocation = pOther->pev->origin;
+
+		if (UTIL_PointContents(vSpotLocation) == CONTENTS_SKY)
+		{
+			//ALERT( at_console, "laser spot is in the sky...\n");
+		}
+
+		UTIL_TraceLine(pev->origin, vSpotLocation, dont_ignore_monsters, ENT(pev), &tr);
+
+		//ALERT( at_console, "fraction: %f\n", tr.flFraction );
+#else
 		UTIL_TraceLine(pev->origin, pOther->pev->origin, dont_ignore_monsters, ENT(pev), &tr);
+#endif
 		// ALERT( at_console, "%f\n", tr.flFraction );
 		if (tr.flFraction >= 0.90)
 		{
@@ -299,6 +354,29 @@ void CRpgRocket::FollowThink(void)
 		}
 	}
 	// ALERT( at_console, "%.0f\n", flSpeed );
+
+#if HL_SDK25
+	if (GetLauncher())
+	{
+		float flDistance = (pev->origin - GetLauncher()->pev->origin).Length();
+
+		// if we've travelled more than max distance the player can send a spot, stop tracking the original launcher (allow it to reload)		
+		if (flDistance > 8192.0f || gpGlobals->time - m_flIgniteTime > 6.0f)
+		{
+			//ALERT( at_console, "RPG too far (%f)!\n", flDistance );
+			GetLauncher()->m_cActiveRockets--;
+			m_hLauncher = NULL;
+		}
+
+		//ALERT( at_console, "%.0f, m_pLauncher: %u, flDistance: %f\n", flSpeed, GetLauncher(), flDistance );
+	}
+
+	if ((UTIL_PointContents(pev->origin) == CONTENTS_SKY))
+	{
+		//ALERT( at_console, "Rocket is in the sky, detonating...\n");
+		Detonate();
+	}
+#endif
 
 	SetNextThink(0.1);
 }
@@ -407,7 +485,11 @@ int CRpg::GetItemInfo(ItemInfo* p)
 	p->iSlot = 3;
 	p->iPosition = 0;
 	p->iId = m_iId = WEAPON_RPG;
+#if HL_SDK25
+	p->iFlags = ITEM_FLAG_NOAUTOSWITCHTO;
+#else
 	p->iFlags = 0;
+#endif
 	p->iWeight = RPG_WEIGHT;
 
 	return 1;
@@ -503,11 +585,17 @@ void CRpg::PrimaryAttack()
 
 		m_flNextPrimaryAttack = GetNextAttackDelay(1.5);
 		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.5;
+
+#if HL_SDK25
+		ResetEmptySound();
+#endif
+
 	}
 	else
 	{
 		PlayEmptySound();
 	}
+
 	UpdateSpot();
 }
 

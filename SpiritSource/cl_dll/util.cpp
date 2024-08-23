@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // util.cpp
 //
@@ -36,15 +42,25 @@ double sqrt(double x);
 
 HSPRITE LoadSprite(const char* pszName)
 {
-	int i;
+	int iRes;
 	char sz[256];
 
+#if HL_SDK25
+	if (ScreenWidth > 2560 && ScreenHeight > 1600)
+		iRes = 2560;
+	else if (ScreenWidth >= 1280 && ScreenHeight > 720)
+		iRes = 1280;
+	else if (ScreenWidth >= 640)
+		iRes = 640;
+	else
+		iRes = 320;
+#else
 	if (ScreenWidth < 640)
 		i = 320;
 	else
 		i = 640;
+#endif
 
-	sprintf(sz, pszName, i);
-
+	sprintf(sz, pszName, iRes);
 	return SPR_Load(sz);
 }

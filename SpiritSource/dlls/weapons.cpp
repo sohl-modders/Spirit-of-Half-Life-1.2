@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== weapons.cpp ========================================================
@@ -57,6 +63,10 @@ MULTIDAMAGE gMultiDamage;
 
 #define TRACER_FREQ		4			// Tracers fire every fourth bullet
 
+#if HL_SDK25
+extern bool IsBustingGame();
+extern bool IsPlayerBusting(CBaseEntity* pPlayer);
+#endif
 
 //=========================================================
 // MaxAmmoCarry - pass in a name and this function will tell
@@ -109,10 +119,6 @@ void ClearMultiDamage(void)
 
 void ApplyMultiDamage(entvars_t* pevInflictor, entvars_t* pevAttacker)
 {
-	Vector vecSpot1; //where blood comes from
-	Vector vecDir; //direction blood should go
-	TraceResult tr;
-
 	if (!gMultiDamage.pEntity)
 		return;
 
@@ -516,6 +522,21 @@ void CBasePlayerItem::FallThink(void)
 
 		Materialize();
 	}
+#if HL_SDK25
+	else if (m_pPlayer != NULL)
+	{
+		SetThink(NULL);
+	}
+
+	//This weapon is an egon, it has no owner and we're in busting mode, so just remove it when it hits the ground
+	if (IsBustingGame() && FNullEnt(pev->owner))
+	{
+		if (!strcmp("weapon_egon", STRING(pev->classname)))
+		{
+			UTIL_Remove(this);
+		}
+	}
+#endif
 }
 
 //=========================================================
@@ -1003,8 +1024,12 @@ BOOL CBasePlayerWeapon::IsUseable(void)
 		}
 	}
 
-	// clip is empty (or nonexistant) and the player has no more ammo of this type. 
+	// clip is empty (or nonexistant) and the player has no more ammo of this type.
+#if HL_SDK25
+	return CanDeploy();
+#else
 	return FALSE;
+#endif
 }
 
 BOOL CBasePlayerWeapon::CanDeploy(void)
@@ -1158,6 +1183,11 @@ void CBasePlayerAmmo::DefaultTouch(CBaseEntity* pOther)
 	{
 		return;
 	}
+
+#if HL_SDK25
+	if (IsPlayerBusting(pOther))
+		return;
+#endif
 
 	if (AddAmmo(pOther))
 	{

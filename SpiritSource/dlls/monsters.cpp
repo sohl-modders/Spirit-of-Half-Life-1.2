@@ -12,6 +12,12 @@
 *   use or distribution of this code by or to any unlicensed person is illegal.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== monsters.cpp ========================================================
@@ -2001,7 +2007,11 @@ void CBaseMonster::MoveExecute(CBaseEntity* pTargetEnt, const Vector& vecDir, fl
 	while (flTotal > 0.001)
 	{
 		// don't walk more than 16 units or stairs stop working
+#if HL_SDK25
+		flStep = min(16.0f, flTotal);
+#else
 		flStep = V_min(16.0, flTotal);
+#endif
 		UTIL_MoveToOrigin(ENT(pev), m_Route[m_iRouteIndex].vecLocation, flStep, MOVE_NORMAL);
 		flTotal -= flStep;
 	}
@@ -2584,16 +2594,19 @@ float CBaseMonster::ChangeYaw(int yawSpeed)
 	ideal = pev->ideal_yaw;
 	if (current != ideal)
 	{
-		float delta = gpGlobals->time - m_flLastYawTime;
-
-		m_flLastYawTime = gpGlobals->time;
-
-		if (delta > 0.25)
+		if (m_flLastYawTime == 0.f)
 		{
-			delta = 0.25;
+			m_flLastYawTime = gpGlobals->time - gpGlobals->frametime;
 		}
 
-		speed = yawSpeed * delta * 2;
+		float delta = gpGlobals->time - m_flLastYawTime;
+		m_flLastYawTime = gpGlobals->time;
+
+		// Clamp delta like the engine does with frametime
+		if (delta > 0.25f)
+			delta = 0.25f;
+
+		speed = (float)yawSpeed * delta * 2;
 
 		move = ideal - current;
 
@@ -3226,8 +3239,6 @@ int CBaseMonster::CanPlaySequence(int interruptFlags)
 BOOL CBaseMonster::FindLateralCover(const Vector& vecThreat, const Vector& vecViewOffset)
 {
 	TraceResult tr;
-	Vector vecBestOnLeft;
-	Vector vecBestOnRight;
 	Vector vecLeftTest;
 	Vector vecRightTest;
 	Vector vecStepRight;
@@ -3326,7 +3337,7 @@ BOOL CBaseMonster::FCanActiveIdle(void)
 	return FALSE;
 }
 
-
+#ifndef HL_SDK25
 void CBaseMonster::PlaySentence(const char* pszSentence, float duration, float volume, float attenuation)
 {
 	if (pszSentence && IsAlive())
@@ -3338,19 +3349,17 @@ void CBaseMonster::PlaySentence(const char* pszSentence, float duration, float v
 	}
 }
 
-
 void CBaseMonster::PlayScriptedSentence(const char* pszSentence, float duration, float volume, float attenuation,
                                         BOOL bConcurrent, CBaseEntity* pListener)
 {
 	PlaySentence(pszSentence, duration, volume, attenuation);
 }
 
-
 void CBaseMonster::SentenceStop(void)
 {
 	EMIT_SOUND(edict(), CHAN_VOICE, "common/null.wav", 1.0, ATTN_IDLE);
 }
-
+#endif
 
 void CBaseMonster::CorpseFallThink(void)
 {

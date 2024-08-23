@@ -144,9 +144,16 @@ void CHandGrenade::WeaponIdle(void)
 		else
 			angThrow.x = -10 + angThrow.x * ((90 + 10) / 90.0);
 
+#if HL_SDK25
+		static float flMultiplier = 6.5f;
+		float flVel = (90 - angThrow.x) * flMultiplier;
+		if (flVel > 1000)
+			flVel = 1000;
+#else
 		float flVel = (90 - angThrow.x) * 4;
 		if (flVel > 500)
 			flVel = 500;
+#endif
 
 		UTIL_MakeVectors(angThrow);
 

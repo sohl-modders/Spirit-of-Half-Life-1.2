@@ -13,11 +13,19 @@
 *
 ****/
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include "Platform.h"
 
 #include <assert.h>
 #include "mathlib.h"
 #include "const.h"
+#if HL_SDK25
+#include "minmax.h"
+#endif
 #include "usercmd.h"
 #include "pm_defs.h"
 #include "pm_shared.h"
@@ -611,7 +619,12 @@ void PM_UpdateStepSound(void)
 	speed = Length(pmove->velocity);
 
 	// determine if we are on a ladder
+#if HL_SDK25
+	//The Barnacle Grapple sets the FL_IMMUNE_LAVA flag to indicate that the player is not on a ladder - Solokiller
+	fLadder = (pmove->movetype == MOVETYPE_FLY) && !(pmove->flags & FL_IMMUNE_LAVA);// IsOnLadder();
+#else
 	fLadder = (pmove->movetype == MOVETYPE_FLY); // IsOnLadder();
+#endif
 
 	// UNDONE: need defined numbers for run, walk, crouch, crouch run velocities!!!!	
 	if ((pmove->flags & FL_DUCKING) || fLadder)
@@ -992,9 +1005,14 @@ int PM_FlyMove(void)
 		//
 
 		// modify original_velocity so it parallels all of the clip planes
-		//
-		if (pmove->movetype == MOVETYPE_WALK &&
-			((pmove->onground == -1) || (pmove->friction != 1))) // relfect player velocity
+#if HL_SDK25
+		// relfect player velocity 
+		// Only give this a try for first impact plane because you can get yourself stuck in an acute corner by jumping in place
+		//  and pressing forward and nobody was really using this bounce/reflection feature anyway...
+		if (numplanes == 1 && pmove->movetype == MOVETYPE_WALK && ((pmove->onground == -1) || (pmove->friction != 1)) )
+#else
+		if (pmove->movetype == MOVETYPE_WALK && ((pmove->onground == -1) || (pmove->friction != 1))) // relfect player velocity
+#endif
 		{
 			for (i = 0; i < numplanes; i++)
 			{
@@ -1748,10 +1766,13 @@ int PM_CheckStuck(void)
 
 	VectorCopy(pmove->origin, base);
 
-	// 
+#if HL_SDK25
+	// Deal with precision error in network and cases where the player can get stuck on level transitions in singleplay.
+	if (!pmove->server || !pmove->multiplayer)
+#else
 	// Deal with precision error in network.
-	// 
 	if (!pmove->server)
+#endif
 	{
 		// World or BSP model
 		if ((hitent == 0) ||
@@ -1776,8 +1797,6 @@ int PM_CheckStuck(void)
 			while (nReps < 54);
 		}
 	}
-
-	// Only an issue on the client.
 
 	if (pmove->server)
 		idx = 0;
@@ -3081,7 +3100,7 @@ void PM_DropPunchAngle(vec3_t punchangle)
 
 	len = VectorNormalize(punchangle);
 	len -= (10.0 + len * 0.5) * pmove->frametime;
-	len = V_max(len, 0.0);
+	len = V_max(len, 0.0f);
 	VectorScale(punchangle, len, punchangle);
 }
 
@@ -3107,6 +3126,18 @@ void PM_CheckParamters(void)
 	{
 		pmove->maxspeed = V_min(maxspeed, pmove->maxspeed);
 	}
+
+
+#if HL_SDK25
+	// Slow down, I'm pulling it! (a box maybe) but only when I'm standing on ground
+	//
+	// JoshA: Moved this to CheckParamters rather than working on the velocity,
+	// as otherwise it affects every integration step incorrectly.
+	if ((pmove->onground != -1) && (pmove->cmd.buttons & IN_USE))
+	{
+		pmove->maxspeed *= 1.0f / 3.0f;
+	}
+#endif
 
 	if ((spd != 0.0) &&
 		(spd > pmove->maxspeed))
@@ -3229,6 +3260,21 @@ void PM_PlayerMove(qboolean server)
 	}
 
 	// Always try and unstick us unless we are in NOCLIP mode
+#if HL_SDK25
+	if (pmove->movetype != MOVETYPE_NOCLIP && pmove->movetype != MOVETYPE_NONE)
+	{
+		if (PM_CheckStuck())
+		{
+			//Let the user try to duck to get unstuck
+			PM_Duck();
+
+			if (PM_CheckStuck())
+			{
+				return;  // Can't move, we're stuck
+			}
+		}
+	}
+#else
 	if (pmove->movetype != MOVETYPE_NOCLIP && pmove->movetype != MOVETYPE_NONE)
 	{
 		if (PM_CheckStuck())
@@ -3236,6 +3282,7 @@ void PM_PlayerMove(qboolean server)
 			return; // Can't move, we're stuck
 		}
 	}
+#endif
 
 	// Now that we are "unstuck", see where we are ( waterlevel and type, pmove->onground ).
 	PM_CatagorizePosition();
@@ -3280,12 +3327,14 @@ void PM_PlayerMove(qboolean server)
 		}
 	}
 
+#ifndef HL_SDK25
 #if !defined( _TFC )
 	// Slow down, I'm pulling it! (a box maybe) but only when I'm standing on ground
 	if ((pmove->onground != -1) && (pmove->cmd.buttons & IN_USE))
 	{
 		VectorScale(pmove->velocity, 0.3, pmove->velocity);
 	}
+#endif
 #endif
 
 	// Handle movement

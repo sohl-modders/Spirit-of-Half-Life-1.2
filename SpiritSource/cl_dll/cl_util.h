@@ -80,6 +80,9 @@ inline struct cvar_s* CVAR_CREATE(const char* cv, const char* val, const int fla
 #define GetScreenInfo (*gEngfuncs.pfnGetScreenInfo)
 #define ServerCmd (*gEngfuncs.pfnServerCmd)
 #define EngineClientCmd (*gEngfuncs.pfnClientCmd)
+#if HL_SDK25
+#define EngineFilteredClientCmd (*gEngfuncs.pfnFilteredClientCmd)
+#endif
 #define SetCrosshair (*gEngfuncs.pfnSetCrosshair)
 #define AngleVectors (*gEngfuncs.pfnAngleVectors)
 

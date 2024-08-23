@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include "extdll.h"
 #include "eiface.h"
 #include "util.h"
@@ -50,6 +56,9 @@ cvar_t mp_chattime = {"mp_chattime", "10", FCVAR_SERVER};
 // Engine Cvars
 cvar_t* g_psv_gravity = NULL;
 cvar_t* g_psv_aim = NULL;
+#if HL_SDK25
+cvar_t* g_psv_allow_autoaim = NULL;
+#endif
 cvar_t* g_footsteps = NULL;
 
 //CVARS FOR SKILL LEVEL SETTINGS
@@ -451,6 +460,11 @@ cvar_t sk_player_leg1 = {"sk_player_leg1", "1"};
 cvar_t sk_player_leg2 = {"sk_player_leg2", "1"};
 cvar_t sk_player_leg3 = {"sk_player_leg3", "1"};
 
+#if HL_SDK25
+cvar_t sv_pushable_fixed_tick_fudge = { "sv_pushable_fixed_tick_fudge", "15" };
+cvar_t sv_busters = { "sv_busters", "0" };
+#endif
+
 // END Cvars for Skill Level settings
 
 // Register your console variables here
@@ -461,6 +475,9 @@ void GameDLLInit(void)
 
 	g_psv_gravity = CVAR_GET_POINTER("sv_gravity");
 	g_psv_aim = CVAR_GET_POINTER("sv_aim");
+#if HL_SDK25
+	g_psv_allow_autoaim = CVAR_GET_POINTER("sv_allow_autoaim");
+#endif
 	g_footsteps = CVAR_GET_POINTER("mp_footsteps");
 
 	CVAR_REGISTER(&displaysoundlist);
@@ -488,6 +505,10 @@ void GameDLLInit(void)
 	CVAR_REGISTER(&mw_debug); //LRC
 
 	CVAR_REGISTER(&mp_chattime);
+
+#if HL_SDK25
+	CVAR_REGISTER(&sv_busters);
+#endif
 
 	// REGISTER CVARS FOR SKILL LEVEL STUFF
 	// Agrunt
@@ -887,6 +908,10 @@ void GameDLLInit(void)
 	CVAR_REGISTER(&sk_player_leg2);
 	CVAR_REGISTER(&sk_player_leg3);
 	// END REGISTER CVARS FOR SKILL LEVEL STUFF
+
+#if HL_SDK25
+	CVAR_REGISTER(&sv_pushable_fixed_tick_fudge);
+#endif
 
 	SERVER_COMMAND("exec skill.cfg\n");
 }

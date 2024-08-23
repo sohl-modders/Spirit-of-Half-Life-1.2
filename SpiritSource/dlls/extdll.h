@@ -15,12 +15,13 @@
 #ifndef EXTDLL_H
 #define EXTDLL_H
 
-
 //
 // Global header file for extension DLLs
 //
 
 #include "Platform.h"
+
+#include "minmax.h"
 
 // Header file containing definition of globalvars_t and entvars_t
 typedef unsigned int func_t; //
@@ -29,9 +30,6 @@ typedef float vec_t; // needed before including progdefs.h
 
 // Vector class
 #include "vector.h"
-
-// Defining it as a (bogus) struct helps enforce type-checking
-#define vec3_t Vector
 
 // Shared engine/DLL constants
 #include "const.h"

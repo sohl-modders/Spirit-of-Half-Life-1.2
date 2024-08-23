@@ -356,11 +356,8 @@ void CRoach::PickNewDest(int iCondition)
 //=========================================================
 void CRoach::Move(float flInterval)
 {
-	float flWaypointDist;
-	Vector vecApex;
-
 	// local move to waypoint.
-	flWaypointDist = (m_Route[m_iRouteIndex].vecLocation - pev->origin).Length2D();
+	float flWaypointDist = (m_Route[m_iRouteIndex].vecLocation - pev->origin).Length2D();
 	MakeIdealYaw(m_Route[m_iRouteIndex].vecLocation);
 
 	ChangeYaw(pev->yaw_speed);

@@ -810,9 +810,6 @@ void CISlave::BeamGlow()
 //=========================================================
 void CISlave::WackBeam(int side, CBaseEntity* pEntity)
 {
-	Vector vecDest;
-	float flDist = 1.0;
-
 	if (m_iBeams >= ISLAVE_MAX_BEAMS)
 		return;
 

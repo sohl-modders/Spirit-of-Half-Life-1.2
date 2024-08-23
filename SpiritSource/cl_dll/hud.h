@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //			
 //  hud.h
 //
@@ -459,6 +465,9 @@ private:
 
 	int m_HUD_title_life;
 	int m_HUD_title_half;
+#if HL_SDK25
+	bool m_bEndAfterMessage;
+#endif
 };
 
 //

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #if !defined( OEM_BUILD ) && !defined( HLDEMO_BUILD )
 
 #include "extdll.h"
@@ -34,6 +40,12 @@
 
 #define EGON_SWITCH_NARROW_TIME			0.75			// Time it takes to switch fire modes
 #define EGON_SWITCH_WIDE_TIME			1.5
+
+#if HL_SDK25
+#ifndef CLIENT_DLL
+extern bool IsBustingGame();
+#endif
+#endif
 
 enum egon_e
 {
@@ -155,6 +167,13 @@ BOOL CEgon::HasAmmo(void)
 
 void CEgon::UseAmmo(int count)
 {
+#if HL_SDK25
+#ifndef CLIENT_DLL
+	if (IsBustingGame())
+		return;
+#endif
+#endif
+
 	if (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] >= count)
 		m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] -= count;
 	else
@@ -460,7 +479,6 @@ void CEgon::CreateEffect(void)
 #endif
 }
 
-
 void CEgon::DestroyEffect(void)
 {
 #ifndef CLIENT_DLL
@@ -485,6 +503,19 @@ void CEgon::DestroyEffect(void)
 #endif
 }
 
+#if HL_SDK25
+BOOL CEgon::CanHolster(void)
+{
+#ifndef CLIENT_DLL
+	if (IsBustingGame())
+	{
+		return FALSE;
+	}
+#endif
+
+	return TRUE;
+}
+#endif
 
 void CEgon::WeaponIdle(void)
 {

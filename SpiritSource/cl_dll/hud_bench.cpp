@@ -1,6 +1,23 @@
-//
-//-----------------------------------------------------
-//
+/***
+*
+*	Copyright (c) 1999, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #define BENCH_TIME 10.0
 
 #include "hud.h"
@@ -146,8 +163,13 @@ int CHudBenchmark::MsgFunc_Bench(const char* pszName, int iSize, void* pbuf)
 	m_fReceiveTime = gHUD.m_flTime;
 	m_StoredLatency = (m_fReceiveTime - m_fSendTime);
 
+#if HL_SDK25
+	m_StoredLatency = min(1.0f, m_StoredLatency);
+	m_StoredLatency = max(0.0f, m_StoredLatency);
+#else
 	m_StoredLatency = V_min(1.0, m_StoredLatency);
 	m_StoredLatency = V_max(0.0, m_StoredLatency);
+#endif
 
 	m_StoredPacketLoss = 0.0;
 
@@ -285,8 +307,13 @@ void CHudBenchmark::Think(void)
 			float switch_time;
 			float total_time;
 
+#if HL_SDK25
+			latency = max(0.0f, latency);
+			latency = min(1.0f, latency);
+#else
 			latency = V_max(0.0, latency);
 			latency = V_min(1.0, latency);
+#endif
 
 			total_time = Bench_GetSwitchTime();
 			total_time -= 2.0;
@@ -340,8 +367,13 @@ void CHudBenchmark::Think(void)
 
 			// Only takes 1/2 time to get up to maximum speed
 			frac *= 2.0;
+#if HL_SDK25
+			frac = max(0.0f, frac);
+			frac = min(1.0f, frac);
+#else
 			frac = V_max(0.0, frac);
 			frac = V_min(1.0, frac);
+#endif
 
 			m_nObjects = (int)(NUM_BENCH_OBJ * frac);
 		}

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -827,6 +833,10 @@ void HUD_WeaponsPostThink(local_state_s* from, local_state_s* to, usercmd_t* cmd
 	player.m_afButtonPressed = buttonsChanged & cmd->buttons;
 	// The ones not down are "released"
 	player.m_afButtonReleased = buttonsChanged & (~cmd->buttons);
+#if HL_SDK25
+	player.pev->v_angle = cmd->viewangles;
+	player.pev->origin = from->client.origin;
+#endif
 
 	// Set player variables that weapons code might check/alter
 	player.pev->button = cmd->buttons;

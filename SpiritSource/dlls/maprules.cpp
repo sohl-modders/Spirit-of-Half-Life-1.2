@@ -13,6 +13,11 @@
 *
 ****/
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //	-------------------------------------------
 //
 //	maprules.cpp
@@ -841,7 +846,11 @@ void CGamePlayerEquip::KeyValue(KeyValueData* pkvd)
 			{
 				char tmp[128];
 
+#if HL_SDK25
+				UTIL_StripToken(pkvd->szKeyName, tmp, sizeof(tmp));
+#else
 				UTIL_StripToken(pkvd->szKeyName, tmp);
+#endif
 
 				m_weaponNames[i] = ALLOC_STRING(tmp);
 				m_weaponCount[i] = atoi(pkvd->szValue);

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #if !defined( OEM_BUILD ) && !defined( HLDEMO_BUILD )
 
 #include "extdll.h"
@@ -50,6 +56,17 @@ TYPEDESCRIPTION CHgun::m_SaveData[] =
 };
 
 IMPLEMENT_SAVERESTORE(CHgun, CBasePlayerWeapon);
+#endif
+
+#if HL_SDK25
+static float GetRechargeTime()
+{
+	if (gpGlobals->maxClients > 1)
+	{
+		return 0.3f;
+	}
+	return 0.5f;
+}
 #endif
 
 BOOL CHgun::IsUseable(void)
@@ -104,7 +121,7 @@ int CHgun::AddToPlayer(CBasePlayer* pPlayer)
 int CHgun::GetItemInfo(ItemInfo* p)
 {
 	p->pszName = STRING(pev->classname);
-	p->pszAmmo1 = "Hornets";
+	p->pszAmmo1 = "hornets";
 	p->iMaxAmmo1 = HORNET_MAX_CARRY;
 	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
@@ -155,11 +172,14 @@ void CHgun::PrimaryAttack()
 		m_pPlayer->pev->v_angle, m_pPlayer->edict());
 	pHornet->pev->velocity = gpGlobals->v_forward * 300;
 
+#if HL_SDK25
+	m_flRechargeTime = gpGlobals->time + GetRechargeTime();
+#else
 	m_flRechargeTime = gpGlobals->time + 0.5;
+#endif
 #endif
 
 	m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]--;
-
 
 	m_pPlayer->m_iWeaponVolume = QUIET_GUN_VOLUME;
 	m_pPlayer->m_iWeaponFlash = DIM_GUN_FLASH;
@@ -184,6 +204,13 @@ void CHgun::PrimaryAttack()
 	{
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.25;
 	}
+
+#if HL_SDK25
+	if (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] == 0)
+	{
+		m_flNextPrimaryAttack += GetRechargeTime();
+	}
+#endif
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + UTIL_SharedRandomFloat(m_pPlayer->random_seed, 10, 15);
 }
@@ -247,7 +274,11 @@ void CHgun::SecondaryAttack(void)
 
 	pHornet->SetThink(&CHornet::StartDart);
 
+#if HL_SDK25
+	m_flRechargeTime = gpGlobals->time + GetRechargeTime();
+#else
 	m_flRechargeTime = gpGlobals->time + 0.5;
+#endif
 #endif
 
 	int flags;
@@ -262,6 +293,7 @@ void CHgun::SecondaryAttack(void)
 
 
 	m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]--;
+
 	m_pPlayer->m_iWeaponVolume = NORMAL_GUN_VOLUME;
 	m_pPlayer->m_iWeaponFlash = DIM_GUN_FLASH;
 
@@ -269,6 +301,16 @@ void CHgun::SecondaryAttack(void)
 	m_pPlayer->SetAnimation(PLAYER_ATTACK1);
 
 	m_flNextPrimaryAttack = m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.1;
+
+#if HL_SDK25
+	if (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] == 0)
+	{
+		m_flRechargeTime = gpGlobals->time + 0.5;
+		m_flNextSecondaryAttack += 0.5;
+		m_flNextPrimaryAttack += 0.5;
+	}
+#endif
+
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + UTIL_SharedRandomFloat(m_pPlayer->random_seed, 10, 15);
 }
 
@@ -281,7 +323,11 @@ void CHgun::Reload(void)
 	while (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] < HORNET_MAX_CARRY && m_flRechargeTime < gpGlobals->time)
 	{
 		m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]++;
-		m_flRechargeTime += 0.5;
+#if HL_SDK25
+		m_flRechargeTime = gpGlobals->time + GetRechargeTime();
+#else
+		m_flRechargeTime = gpGlobals->time + 0.5;
+#endif
 	}
 }
 

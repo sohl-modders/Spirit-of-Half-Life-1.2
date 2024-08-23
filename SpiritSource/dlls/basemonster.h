@@ -13,6 +13,11 @@
 *
 ****/
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #ifndef BASEMONSTER_H
 #define BASEMONSTER_H
 
@@ -47,7 +52,10 @@ public:
 	float m_flFieldOfView; // width of monster's field of view ( dot product )
 	float m_flWaitFinished; // if we're told to wait, this is the time that the wait will be over.
 	float m_flMoveWaitFinished;
-	float m_flLastYawTime;
+
+#if HL_SDK25
+	float m_flLastYawTime;	// Last time yaw change was computed
+#endif
 
 	Activity m_Activity; // what the monster is doing (animation)
 	Activity m_IdealActivity; // monster should switch to this activity
@@ -205,12 +213,16 @@ public:
 	// virtual int CanPlaySequence( void ) { return ((m_pCine == NULL) && (m_MonsterState == MONSTERSTATE_NONE || m_MonsterState == MONSTERSTATE_IDLE || m_IdealMonsterState == MONSTERSTATE_IDLE)); }
 	virtual int CanPlaySequence(int interruptFlags);
 	//		virtual int CanPlaySequence( BOOL fDisregardState, int interruptLevel );
+#if HL_SDK25
+	virtual int CanPlaySentence(BOOL fDisregardState) { return IsAllowedToSpeak(); }
+	virtual BOOL IsAllowedToSpeak() { return IsAlive(); }
+#else
 	virtual int CanPlaySentence(BOOL fDisregardState) { return IsAlive(); }
 	virtual void PlaySentence(const char* pszSentence, float duration, float volume, float attenuation);
 	virtual void PlayScriptedSentence(const char* pszSentence, float duration, float volume, float attenuation,
-	                                  BOOL bConcurrent, CBaseEntity* pListener);
-
+		BOOL bConcurrent, CBaseEntity* pListener);
 	virtual void SentenceStop(void);
+#endif
 
 	Task_t* GetTask(void);
 	virtual MONSTERSTATE GetIdealState(void);

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // hud_redraw.cpp
 //
@@ -35,7 +41,11 @@ int grgLogoFrame[MAX_LOGO_FRAMES] =
 
 float HUD_GetFOV(void);
 
+#if HL_SDK25
+extern float IN_GetMouseSensitivity();
+#else
 extern cvar_t* sensitivity;
+#endif
 
 // Think
 void CHud::Think(void)
@@ -76,15 +86,24 @@ void CHud::Think(void)
 	else
 	{
 		// set a new sensitivity that is proportional to the change from the FOV default
-		m_flMouseSensitivity = sensitivity->value * ((float)newfov / (float)default_fov->value) * CVAR_GET_FLOAT(
-			"zoom_sensitivity_ratio");
+#if HL_SDK25
+		m_flMouseSensitivity = IN_GetMouseSensitivity() * ((float)newfov / (float)max<int>(default_fov->value, 90)) * 
+			CVAR_GET_FLOAT("zoom_sensitivity_ratio");
+#else
+		m_flMouseSensitivity = sensitivity->value * ((float)newfov / (float)default_fov->value) *
+			CVAR_GET_FLOAT("zoom_sensitivity_ratio");
+#endif
 	}
 
 	// think about default fov
 	if (m_iFOV == 0)
 	{
 		// only let players adjust up in fov,  and only if they are not overriden by something else
+#if HL_SDK25
+		m_iFOV = max<int>(default_fov->value, 90);
+#else
 		m_iFOV = V_max(default_fov->value, 90);
+#endif
 	}
 
 	if (gEngfuncs.IsSpectateOnly())

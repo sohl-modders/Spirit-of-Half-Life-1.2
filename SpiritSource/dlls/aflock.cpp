@@ -12,6 +12,12 @@
 *   use or distribution of this code by or to any unlicensed person is illegal.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //=========================================================
 //=========================================================
 #include "archtypes.h"     // DAL
@@ -508,8 +514,6 @@ void CFlockingFlyer::SpreadFlock2()
 BOOL CFlockingFlyer::FPathBlocked()
 {
 	TraceResult tr;
-	Vector vecDist; // used for general measurements
-	Vector vecDir; // used for general measurements
 	BOOL fBlocked;
 
 	if (m_flFakeBlockedTime > gpGlobals->time)
@@ -568,8 +572,6 @@ void CFlockingFlyer::FlockLeaderThink(void)
 {
 	TraceResult tr;
 	Vector vecDist; // used for general measurements
-	Vector vecDir; // used for general measurements
-	int cProcessed = 0; // keep track of how many other boids we've processed 
 	float flLeftSide;
 	float flRightSide;
 
@@ -675,9 +677,6 @@ void CFlockingFlyer::FlockLeaderThink(void)
 //=========================================================
 void CFlockingFlyer::FlockFollowerThink(void)
 {
-	TraceResult tr;
-	Vector vecDist;
-	Vector vecDir;
 	Vector vecDirToLeader;
 	float flDistToLeader;
 

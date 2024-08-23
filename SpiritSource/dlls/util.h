@@ -12,6 +12,15 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
+#ifndef UTIL_H
+#define UTIL_H
+
 #include "archtypes.h"     // DAL
 
 //
@@ -404,7 +413,11 @@ extern void UTIL_LogPrintf(const char* fmt, ...);
 // Sorta like FInViewCone, but for nonmonsters. 
 extern float UTIL_DotPoints(const Vector& vecSrc, const Vector& vecCheck, const Vector& vecDir);
 
+#if HL_SDK25
+extern void UTIL_StripToken(const char* pKey, char* pDest, int nLen);// for redundant keynames
+#else
 extern void UTIL_StripToken(const char* pKey, char* pDest); // for redundant keynames
+#endif
 
 // Misc functions
 extern void SetMovedir(entvars_t* pev);
@@ -529,8 +542,12 @@ extern DLL_GLOBAL int g_Language;
 // Sound Utilities
 
 // sentence groups
-#define CBSENTENCENAME_MAX 16
+#define CBSENTENCENAME_MAX		16
+#if HL_SDK25
+#define CVOXFILESENTENCEMAX		2048		// max number of sentences in game. NOTE: this must match
+#else
 #define CVOXFILESENTENCEMAX		1536		// max number of sentences in game. NOTE: this must match
+#endif
 // CVOXFILESENTENCEMAX in engine\sound.h!!!
 
 extern char gszallsentencenames[CVOXFILESENTENCEMAX][CBSENTENCENAME_MAX];
@@ -615,3 +632,4 @@ int GetStdLightStyle(int iStyle); //LRC- declared here so it can be used by ever
 // needs to deal with the standard lightstyles.
 // LRC- for aliases and groups
 CBaseEntity* UTIL_FollowReference(CBaseEntity* pStartEntity, const char* szName);
+#endif // UTIL_H

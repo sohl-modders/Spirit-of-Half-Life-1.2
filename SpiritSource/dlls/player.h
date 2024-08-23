@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #ifndef PLAYER_H
 #define PLAYER_H
 
@@ -195,7 +201,12 @@ public:
 	Vector m_vecAutoAim;
 	BOOL m_fOnTarget;
 	int m_iDeaths;
+
+#if HL_SDK25
+	float m_flRespawnTimer; // used in PlayerDeathThink() to make sure players can always respawn
+#else
 	float m_iRespawnFrames; // used in PlayerDeathThink() to make sure players can always respawn
+#endif
 
 	int m_lastx, m_lasty; // These are the previous update's crosshair angles, DON"T SAVE/RESTORE
 
@@ -246,6 +257,10 @@ public:
 	// JOHN:  sends custom messages if player HUD data has changed  (eg health, ammo)
 	virtual void UpdateClientData(void);
 
+#if HL_SDK25
+	void SetPrefsFromUserinfo(char* infobuffer);
+#endif
+
 	static TYPEDESCRIPTION m_playerSaveData[];
 
 	// Player is moved across the transition by other means
@@ -278,6 +293,9 @@ public:
 	void DropPlayerItem(char* pszItemName);
 	BOOL HasPlayerItem(CBasePlayerItem* pCheckItem);
 	BOOL HasNamedPlayerItem(const char* pszItemName);
+#if HL_SDK25
+	BOOL HasPlayerItemFromID(int nID);
+#endif
 	BOOL HasWeapons(void); // do I have ANY weapons?
 	void SelectPrevItem(int iItem);
 	void SelectNextItem(int iItem);
@@ -313,8 +331,6 @@ public:
 
 	void ForceClientDllUpdate(void); // Forces all client .dll specific data to be resent to client.
 
-	void DeathMessage(entvars_t* pevKiller);
-
 	void SetCustomDecalFrames(int nFrames);
 	int GetCustomDecalFrames(void);
 
@@ -336,9 +352,9 @@ public:
 
 	float m_flNextChatTime;
 
-	void SetPrefsFromUserinfo(char* infobuffer);
-
-	int m_iAutoWepSwitch;
+#if HL_SDK25
+	int	m_iAutoWepSwitch;
+#endif
 };
 
 #define AUTOAIM_2DEGREES  0.0348994967025

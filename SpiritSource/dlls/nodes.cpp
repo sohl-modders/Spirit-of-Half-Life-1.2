@@ -217,9 +217,7 @@ entvars_t* CGraph::LinkEntForLink(CLink* pLink, CNode* pNode)
 //=========================================================
 int CGraph::HandleLinkEnt(int iNode, entvars_t* pevLinkEnt, int afCapMask, NODEQUERY queryType)
 {
-	edict_t* pentWorld;
 	CBaseEntity* pDoor;
-	TraceResult tr;
 
 	if (!m_fGraphPresent || !m_fGraphPointersSet)
 	{
@@ -233,7 +231,6 @@ int CGraph::HandleLinkEnt(int iNode, entvars_t* pevLinkEnt, int afCapMask, NODEQ
 		ALERT(at_aiconsole, "dead path ent!\n");
 		return TRUE;
 	}
-	pentWorld = NULL;
 
 	// func_door
 	if (FClassnameIs(pevLinkEnt, "func_door") || FClassnameIs(pevLinkEnt, "func_door_rotating"))
@@ -888,7 +885,6 @@ int CGraph::FindNearestNode(const Vector& vecOrigin, CBaseEntity* pEntity)
 int CGraph::FindNearestNode(const Vector& vecOrigin, int afNodeTypes)
 {
 	int i;
-	TraceResult tr;
 
 	if (!m_fGraphPresent || !m_fGraphPointersSet)
 	{
@@ -1646,7 +1642,6 @@ void CTestHull::CallBuildNodeGraph(void)
 //=========================================================
 void CTestHull::BuildNodeGraph(void)
 {
-	TraceResult tr;
 	FILE* file;
 
 	char szNrpFilename[MAX_PATH]; // text node report filename
@@ -1663,23 +1658,9 @@ void CTestHull::BuildNodeGraph(void)
 
 	int iBadNode; // this is the node that caused graph generation to fail
 
-	int cMaxInitialLinks = 0;
-	int cMaxValidLinks = 0;
-
-	int iPoolIndex = 0;
 	int cPoolLinks; // number of links in the pool.
 
-	Vector vecDirToCheckNode;
-	Vector vecDirToTestNode;
-	Vector vecStepCheckDir;
-	Vector vecTraceSpot;
 	Vector vecSpot;
-
-	Vector2D vec2DirToCheckNode;
-	Vector2D vec2DirToTestNode;
-	Vector2D vec2StepCheckDir;
-	Vector2D vec2TraceSpot;
-	Vector2D vec2Spot;
 
 	float flYaw; // use this stuff to walk the hull between nodes
 	float flDist;

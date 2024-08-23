@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== player.cpp ========================================================
@@ -48,13 +54,15 @@ int gEvilImpulse101;
 BOOL g_markFrameBounds = 0; //LRC
 extern DLL_GLOBAL int g_iSkillLevel, gDisplayTitle;
 
-
 BOOL gInitHUD = TRUE;
 
 extern void CopyToBodyQue(entvars_t* pev);
 extern void respawn(entvars_t* pev, BOOL fCopyCorpse);
 extern Vector VecBModelOrigin(entvars_t* pevBModel);
 extern edict_t* EntSelectSpawnPoint(CBaseEntity* pPlayer);
+#if HL_SDK25
+extern bool IsBustingGame();
+#endif
 
 // the world node graph
 extern CGraph WorldGraph;
@@ -740,8 +748,24 @@ void CBasePlayer::PackDeadPlayerItems(void)
 				case GR_PLR_DROP_GUN_ACTIVE:
 					if (m_pActiveItem && pPlayerItem == m_pActiveItem)
 					{
+#if HL_SDK25
+						CBasePlayerWeapon* pWeapon = (CBasePlayerWeapon*)pPlayerItem;
+						int nIndex = iPW++;
+
+						rgpPackWeapons[nIndex] = pWeapon;
+
+						//Reload the weapon before dropping it if we have ammo
+						int j = min(pWeapon->iMaxClip() - pWeapon->m_iClip, m_rgAmmo[pWeapon->m_iPrimaryAmmoType]);
+
+						// Add them to the clip
+						pWeapon->m_iClip += j;
+						m_rgAmmo[pWeapon->m_iPrimaryAmmoType] -= j;
+
+						TabulateAmmo();
+#else
 						// this is the active item. Pack it.
 						rgpPackWeapons[iPW++] = (CBasePlayerWeapon*)pPlayerItem;
+#endif
 					}
 					break;
 
@@ -806,10 +830,74 @@ void CBasePlayer::PackDeadPlayerItems(void)
 	iPW = 0;
 
 	// pack the ammo
+#if HL_SDK25
+	if (IsBustingGame())
+	{
+		if (HasNamedPlayerItem("weapon_egon"))
+		{
+			for (i = 0; i < MAX_ITEM_TYPES; i++)
+			{
+				CBasePlayerItem* pItem = m_rgpPlayerItems[i];
+
+				if (pItem)
+				{
+					if (!strcmp("weapon_egon", STRING(pItem->pev->classname)))
+					{
+						pWeaponBox->PackWeapon(pItem);
+
+						SET_MODEL(ENT(pWeaponBox->pev), "models/w_egon.mdl");
+
+						pWeaponBox->pev->velocity = vec3_t(0, 0, 0);
+						pWeaponBox->pev->renderfx = kRenderFxGlowShell;
+						pWeaponBox->pev->renderamt = 25;
+						pWeaponBox->pev->rendercolor = Vector(0, 75, 250);
+
+						break;
+					}
+				}
+			}
+		}
+
+
+	}
+	else
+	{
+		bool bPackItems = TRUE;
+
+		if (iAmmoRules == GR_PLR_DROP_AMMO_ACTIVE && iWeaponRules == GR_PLR_DROP_GUN_ACTIVE)
+		{
+			if (FClassnameIs(rgpPackWeapons[0]->pev, "weapon_satchel") && (iPackAmmo[0] == -1 || (m_rgAmmo[iPackAmmo[0]] == 0)))
+			{
+				bPackItems = FALSE;
+			}
+		}
+
+		if (bPackItems)
+		{
+			// pack the ammo
+			while (iPackAmmo[iPA] != -1)
+			{
+				pWeaponBox->PackAmmo(MAKE_STRING(CBasePlayerItem::AmmoInfoArray[iPackAmmo[iPA]].pszName), m_rgAmmo[iPackAmmo[iPA]]);
+				iPA++;
+			}
+
+			// now pack all of the items in the lists
+			while (rgpPackWeapons[iPW])
+			{
+				// weapon unhooked from the player. Pack it into der box.
+				pWeaponBox->PackWeapon(rgpPackWeapons[iPW]);
+
+				iPW++;
+			}
+		}
+
+		pWeaponBox->pev->velocity = pev->velocity * 1.2;// weaponbox has player's velocity, then some.
+	}
+#else
 	while (iPackAmmo[iPA] != -1)
 	{
 		pWeaponBox->PackAmmo(
-			MAKE_STRING(CBasePlayerItem::AmmoInfoArray[ iPackAmmo[ iPA ] ].pszName), m_rgAmmo[iPackAmmo[iPA]]);
+			MAKE_STRING(CBasePlayerItem::AmmoInfoArray[iPackAmmo[iPA]].pszName), m_rgAmmo[iPackAmmo[iPA]]);
 		iPA++;
 	}
 
@@ -823,6 +911,7 @@ void CBasePlayer::PackDeadPlayerItems(void)
 	}
 
 	pWeaponBox->pev->velocity = pev->velocity * 1.2; // weaponbox has player's velocity, then some.
+#endif 
 
 	RemoveAllItems(TRUE); // now strip off everything that wasn't handled by the code above.
 }
@@ -931,7 +1020,7 @@ void CBasePlayer::RemoveItems(int iWeaponMask, int i9mm, int i357, int iBuck, in
 	RemoveAmmo("Snarks", iSnark);
 	RemoveAmmo("Trip Mine", iTrip);
 	RemoveAmmo("Hand Grenade", iGren);
-	RemoveAmmo("Hornets", iHornet);
+	RemoveAmmo("hornets", iHornet);
 
 	for (i = 0; i < MAX_ITEM_TYPES; i++)
 	{
@@ -1051,7 +1140,11 @@ void CBasePlayer::Killed(entvars_t* pevAttacker, int iGib)
 
 	SetAnimation(PLAYER_DIE);
 
+#if HL_SDK25
+	m_flRespawnTimer = 0.0f;
+#else
 	m_iRespawnFrames = 0;
+#endif
 
 	pev->modelindex = g_ulModelIndexPlayer; // don't use eyes
 
@@ -1084,6 +1177,13 @@ void CBasePlayer::Killed(entvars_t* pevAttacker, int iGib)
 	WRITE_BYTE(0);
 	MESSAGE_END();
 
+#if HL_SDK25
+	//Adrian: always make the players non-solid in multiplayer when they die
+	if (g_pGameRules->IsMultiplayer())
+	{
+		pev->solid = SOLID_NOT;
+	}
+#endif
 
 	// UNDONE: Put this in, but add FFADE_PERMANENT and make fade time 8.8 instead of 4.12
 	// UTIL_ScreenFade( edict(), Vector(128,0,0), 6, 15, 255, FFADE_OUT | FFADE_MODULATE );
@@ -1293,7 +1393,7 @@ void CBasePlayer::TabulateAmmo()
 	ammo_buckshot = AmmoInventory(GetAmmoIndex("buckshot"));
 	ammo_rockets = AmmoInventory(GetAmmoIndex("rockets"));
 	ammo_uranium = AmmoInventory(GetAmmoIndex("uranium"));
-	ammo_hornets = AmmoInventory(GetAmmoIndex("Hornets"));
+	ammo_hornets = AmmoInventory(GetAmmoIndex("hornets"));
 }
 
 
@@ -1456,19 +1556,40 @@ void CBasePlayer::PlayerDeathThink(void)
 	{
 		StudioFrameAdvance();
 
+#if HL_SDK25
+		m_flRespawnTimer += gpGlobals->frametime;
+		if (m_flRespawnTimer < 4.0f)   // 120 frames at 30fps -- animations should be no longer than this
+#else
 		m_iRespawnFrames++;
 		// Note, these aren't necessarily real "frames", so behavior is dependent on # of client movement commands
 		if (m_iRespawnFrames < 120) // Animations should be no longer than this
+#endif
 			return;
 	}
+
+#if HL_SDK25
+	if (pev->deadflag == DEAD_DYING)
+	{
+		//Once we finish animating, if we're in multiplayer just make a copy of our body right away.
+		if (m_fSequenceFinished && g_pGameRules->IsMultiplayer() && pev->movetype == MOVETYPE_NONE)
+		{
+			CopyToBodyQue(pev);
+			pev->modelindex = 0;
+		}
+
+		pev->deadflag = DEAD_DEAD;
+	}
+#endif
 
 	// once we're done animating our death and we're on the ground, we want to set movetype to None so our dead body won't do collisions and stuff anymore
 	// this prevents a bug where the dead body would go to a player's head if he walked over it while the dead player was clicking their button to respawn
 	if (pev->movetype != MOVETYPE_NONE && FBitSet(pev->flags, FL_ONGROUND))
 		pev->movetype = MOVETYPE_NONE;
 
+#ifndef HL_SDK25
 	if (pev->deadflag == DEAD_DYING)
 		pev->deadflag = DEAD_DEAD;
+#endif
 
 	StopAnimation();
 
@@ -1510,7 +1631,12 @@ void CBasePlayer::PlayerDeathThink(void)
 		return;
 
 	pev->button = 0;
+
+#if HL_SDK25
+	m_flRespawnTimer = 0.0f;
+#else
 	m_iRespawnFrames = 0;
+#endif
 
 	//ALERT(at_console, "Respawn\n");
 
@@ -1677,6 +1803,11 @@ void CBasePlayer::PlayerUse(void)
 			{
 				m_afPhysicsFlags &= ~PFLAG_ONTRAIN;
 				m_iTrain = TRAIN_NEW | TRAIN_OFF;
+#if HL_SDK25
+				CBaseEntity* pTrain = CBaseEntity::Instance(pev->groundentity);
+				if (pTrain && (pTrain->Classify() == CLASS_VEHICLE))
+					((CFuncVehicle*)pTrain)->m_pDriver = NULL;
+#endif
 				return;
 			}
 			else
@@ -1690,6 +1821,14 @@ void CBasePlayer::PlayerUse(void)
 					m_afPhysicsFlags |= PFLAG_ONTRAIN;
 					m_iTrain = TrainSpeed(pTrain->pev->speed, pTrain->pev->impulse);
 					m_iTrain |= TRAIN_NEW;
+#if HL_SDK25
+					if (pTrain->Classify() == CLASS_VEHICLE)
+					{
+						EMIT_SOUND(ENT(pev), CHAN_ITEM, "plats/vehicle_ignition.wav", 0.8, ATTN_NORM);
+						((CFuncVehicle*)pTrain)->m_pDriver = this;
+					}
+					else
+#endif
 					EMIT_SOUND(ENT(pev), CHAN_ITEM, "plats/train_use1.wav", 0.8, ATTN_NORM);
 					return;
 				}
@@ -1787,14 +1926,8 @@ void CBasePlayer::PlayerUse(void)
 	}
 }
 
-
 void CBasePlayer::Jump()
 {
-	Vector vecWallCheckDir; // direction we're tracing a line to find a wall when walljumping
-	Vector vecAdjustedVelocity;
-	Vector vecSpot;
-	TraceResult tr;
-
 	if (FBitSet(pev->flags, FL_WATERJUMP))
 		return;
 
@@ -1835,8 +1968,18 @@ void CBasePlayer::Jump()
 	{
 		pev->velocity = pev->velocity + pev->basevelocity;
 	}
-}
 
+#if HL_SDK25
+	// JoshA: CS behaviour does this for tracktrain + train as well,
+	// but let's just do this for func_vehicle to avoid breaking existing content.
+	//
+	// If you're standing on a moving train... then add the velocity of the train to yours.
+	if (pevGround && ( /*(!strcmp( "func_tracktrain", STRING(pevGround->classname))) ||
+							(!strcmp( "func_train", STRING(pevGround->classname))) ) ||*/
+		(!strcmp("func_vehicle", STRING(pevGround->classname)))))
+		pev->velocity = pev->velocity + pevGround->velocity;
+#endif
+}
 
 // This is a glorious hack to find free space when you've crouched into some solid space
 // Our crouching collisions do not work correctly for some reason and this is easier
@@ -2111,26 +2254,77 @@ void CBasePlayer::PreThink(void)
 			if (trainTrace.flFraction != 1.0 && trainTrace.pHit)
 				pTrain = CBaseEntity::Instance(trainTrace.pHit);
 
-
 			if (!pTrain || !(pTrain->ObjectCaps() & FCAP_DIRECTIONAL_USE) || !pTrain->OnControls(pev))
 			{
 				//ALERT( at_error, "In train mode with no train!\n" );
 				m_afPhysicsFlags &= ~PFLAG_ONTRAIN;
 				m_iTrain = TRAIN_NEW | TRAIN_OFF;
+#if HL_SDK25
+				if (pTrain->Classify() == CLASS_VEHICLE)
+					((CFuncVehicle*)pTrain)->m_pDriver = NULL;
+#endif
 				return;
 			}
 		}
-		else if (!FBitSet(pev->flags, FL_ONGROUND) || FBitSet(pTrain->pev->spawnflags, SF_TRACKTRAIN_NOCONTROL) || (pev
-			->button & (IN_MOVELEFT | IN_MOVERIGHT)))
+#if HL_SDK25
+		else if (!FBitSet(pev->flags, FL_ONGROUND) || FBitSet(pTrain->pev->spawnflags, SF_TRACKTRAIN_NOCONTROL) || 
+			((pev->button & (IN_MOVELEFT | IN_MOVERIGHT)) && pTrain->Classify() != CLASS_VEHICLE))
+#else
+		else if (!FBitSet(pev->flags, FL_ONGROUND) || FBitSet(pTrain->pev->spawnflags, SF_TRACKTRAIN_NOCONTROL) || 
+			(pev->button & (IN_MOVELEFT | IN_MOVERIGHT)))
+#endif
 		{
 			// Turn off the train if you jump, strafe, or the train controls go dead
 			m_afPhysicsFlags &= ~PFLAG_ONTRAIN;
 			m_iTrain = TRAIN_NEW | TRAIN_OFF;
+#if HL_SDK25
+			if (pTrain->Classify() == CLASS_VEHICLE)
+				((CFuncVehicle*)pTrain)->m_pDriver = NULL;
+#endif
 			return;
 		}
 
 		pev->velocity = g_vecZero;
 		vel = 0;
+
+#if HL_SDK25
+		if (pTrain->Classify() == CLASS_VEHICLE)
+		{
+			if (pev->button & IN_FORWARD)
+			{
+				vel = 1;
+				pTrain->Use(this, this, USE_SET, (float)vel);
+			}
+			if (pev->button & IN_BACK)
+			{
+				vel = -1;
+				pTrain->Use(this, this, USE_SET, (float)vel);
+			}
+			if (pev->button & IN_MOVELEFT)
+			{
+				vel = 20;
+				pTrain->Use(this, this, USE_SET, (float)vel);
+			}
+			if (pev->button & IN_MOVERIGHT)
+			{
+				vel = 30;
+				pTrain->Use(this, this, USE_SET, (float)vel);
+			}
+		}
+		else
+		{
+			if (m_afButtonPressed & IN_FORWARD)
+			{
+				vel = 1;
+				pTrain->Use(this, this, USE_SET, (float)vel);
+			}
+			else if (m_afButtonPressed & IN_BACK)
+			{
+				vel = -1;
+				pTrain->Use(this, this, USE_SET, (float)vel);
+			}
+		}
+#else
 		if (m_afButtonPressed & IN_FORWARD)
 		{
 			vel = 1;
@@ -2141,7 +2335,7 @@ void CBasePlayer::PreThink(void)
 			vel = -1;
 			pTrain->Use(this, this, USE_SET, (float)vel);
 		}
-
+#endif
 		if (vel)
 		{
 			m_iTrain = TrainSpeed(pTrain->pev->speed, pTrain->pev->impulse);
@@ -2876,24 +3070,32 @@ pt_end:
 
 				if (gun && gun->UseDecrement())
 				{
+#if HL_SDK25
+					gun->m_flNextPrimaryAttack = max(gun->m_flNextPrimaryAttack - gpGlobals->frametime, -1.0f);
+					gun->m_flNextSecondaryAttack = max(gun->m_flNextSecondaryAttack - gpGlobals->frametime, -0.001f);
+#else
 					gun->m_flNextPrimaryAttack = V_max(gun->m_flNextPrimaryAttack - gpGlobals->frametime, -1.0);
 					gun->m_flNextSecondaryAttack = V_max(gun->m_flNextSecondaryAttack - gpGlobals->frametime, -0.001);
+#endif
 
 					if (gun->m_flTimeWeaponIdle != 1000)
 					{
+#if HL_SDK25
+						gun->m_flTimeWeaponIdle = max(gun->m_flTimeWeaponIdle - gpGlobals->frametime, -0.001f);
+#else
 						gun->m_flTimeWeaponIdle = V_max(gun->m_flTimeWeaponIdle - gpGlobals->frametime, -0.001);
+#endif
+						gun->m_flTimeWeaponIdle = max(gun->m_flTimeWeaponIdle - gpGlobals->frametime, -0.001f);
 					}
 
 					if (gun->pev->fuser1 != 1000)
 					{
+#if HL_SDK25
+						gun->pev->fuser1 = max(gun->pev->fuser1 - gpGlobals->frametime, -0.001f);
+#else
 						gun->pev->fuser1 = V_max(gun->pev->fuser1 - gpGlobals->frametime, -0.001);
+#endif
 					}
-
-					// Only decrement if not flagged as NO_DECREMENT
-					//					if ( gun->m_flPumpTime != 1000 )
-					//	{
-					//		gun->m_flPumpTime	= V_max( gun->m_flPumpTime - gpGlobals->frametime, -0.001 );
-					//	}
 				}
 
 				pPlayerItem = pPlayerItem->m_pNext;
@@ -2964,9 +3166,12 @@ USES AND SETS GLOBAL g_pLastSpawn
 edict_t* EntSelectSpawnPoint(CBaseEntity* pPlayer)
 {
 	CBaseEntity* pSpot;
-	edict_t* player;
 
-	player = pPlayer->edict();
+#if HL_SDK25
+	int nNumRandomSpawnsToTry = 10;
+#endif
+
+	edict_t* player = pPlayer->edict();
 
 	// choose a info_player_deathmatch point
 	if (g_pGameRules->IsCoOp())
@@ -2980,9 +3185,27 @@ edict_t* EntSelectSpawnPoint(CBaseEntity* pPlayer)
 	}
 	else if (g_pGameRules->IsDeathmatch())
 	{
+#if HL_SDK25
+		if (NULL == g_pLastSpawn)
+		{
+			int nNumSpawnPoints = 0;
+			CBaseEntity* pEnt = UTIL_FindEntityByClassname(NULL, "info_player_deathmatch");
+			while (NULL != pEnt)
+			{
+				nNumSpawnPoints++;
+				pEnt = UTIL_FindEntityByClassname(pEnt, "info_player_deathmatch");
+			}
+			nNumRandomSpawnsToTry = nNumSpawnPoints;
+		}
+#endif
+
 		pSpot = g_pLastSpawn;
 		// Randomize the start spot
+#if HL_SDK25
+		for (int i = RANDOM_LONG(1, nNumRandomSpawnsToTry - 1); i > 0; i--)
+#else
 		for (int i = RANDOM_LONG(1, 5); i > 0; i--)
+#endif
 			pSpot = UTIL_FindEntityByClassname(pSpot, "info_player_deathmatch");
 		if (FNullEnt(pSpot)) // skip over the null point
 			pSpot = UTIL_FindEntityByClassname(pSpot, "info_player_deathmatch");
@@ -3052,6 +3275,9 @@ ReturnSpot:
 
 void CBasePlayer::Spawn(void)
 {
+#if HL_SDK25
+	m_flStartCharge = gpGlobals->time;
+#endif
 	pev->classname = MAKE_STRING("player");
 	pev->health = 100;
 	pev->armorvalue = 0;
@@ -3266,6 +3492,14 @@ int CBasePlayer::Restore(CRestore& restore)
 	//			as just a counter.  Ideally, this needs its own variable that's saved as a plain float.
 	//			Barring that, we clear it out here instead of using the incorrect restored time value.
 	m_flNextAttack = UTIL_WeaponTimeBase();
+#endif
+
+#if HL_SDK25
+	// Force a flashlight update for the HUD
+	if (m_flFlashLightTime == 0)
+	{
+		m_flFlashLightTime = 1;
+	}
 #endif
 
 	m_bResetViewEntity = true;
@@ -3712,7 +3946,11 @@ void CBasePlayer::ImpulseCommands()
 void CBasePlayer::CheatImpulseCommands(int iImpulse)
 {
 #if !defined( HLDEMO_BUILD )
+#if HL_SDK25
+	if (CVAR_GET_FLOAT("sv_cheats") == 0.0)
+#else
 	if (g_flWeaponCheat == 0.0)
+#endif
 	{
 		return;
 	}
@@ -3761,31 +3999,51 @@ void CBasePlayer::CheatImpulseCommands(int iImpulse)
 
 	case 101:
 		gEvilImpulse101 = TRUE;
-		GiveNamedItem("item_suit");
-		GiveNamedItem("item_battery");
+		//Add the Suit and 100% Armor
+		if (pev->weapons & (1 << WEAPON_SUIT))
+			pev->armorvalue = 100;
+		else
+		{
+			pev->weapons |= (1 << WEAPON_SUIT);
+			pev->armorvalue = 100;
+		}
+
+		pev->health = pev->max_health; //100% health
+
+		//Add Weapons
 		GiveNamedItem("weapon_crowbar");
 		GiveNamedItem("weapon_9mmhandgun");
-		GiveNamedItem("ammo_9mmclip");
 		GiveNamedItem("weapon_shotgun");
-		GiveNamedItem("ammo_buckshot");
 		GiveNamedItem("weapon_9mmAR");
-		GiveNamedItem("ammo_9mmAR");
-		GiveNamedItem("ammo_ARgrenades");
 		GiveNamedItem("weapon_handgrenade");
 		GiveNamedItem("weapon_tripmine");
+
+		//Add full ammo
+		GiveAmmo(_9MM_MAX_CARRY, "9mm", _9MM_MAX_CARRY);
+		GiveAmmo(BUCKSHOT_MAX_CARRY, "buckshot", BUCKSHOT_MAX_CARRY);
+		GiveAmmo(M203_GRENADE_MAX_CARRY, "ARgrenades", M203_GRENADE_MAX_CARRY);
+		GiveAmmo(TRIPMINE_MAX_CARRY, "Trip Mine", TRIPMINE_MAX_CARRY);
+		GiveAmmo(HANDGRENADE_MAX_CARRY, "Hand Grenade", HANDGRENADE_MAX_CARRY);
 #ifndef OEM_BUILD
+
+		//Add Weapons
 		GiveNamedItem("weapon_357");
-		GiveNamedItem("ammo_357");
 		GiveNamedItem("weapon_crossbow");
-		GiveNamedItem("ammo_crossbow");
 		GiveNamedItem("weapon_egon");
 		GiveNamedItem("weapon_gauss");
-		GiveNamedItem("ammo_gaussclip");
 		GiveNamedItem("weapon_rpg");
-		GiveNamedItem("ammo_rpgclip");
 		GiveNamedItem("weapon_satchel");
 		GiveNamedItem("weapon_snark");
 		GiveNamedItem("weapon_hornetgun");
+
+		//Add full ammo
+		GiveAmmo(_357_MAX_CARRY, "357", _357_MAX_CARRY);
+		GiveAmmo(BOLT_MAX_CARRY, "bolts", BOLT_MAX_CARRY);
+		GiveAmmo(URANIUM_MAX_CARRY, "uranium", URANIUM_MAX_CARRY);
+		GiveAmmo(ROCKET_MAX_CARRY, "rockets", ROCKET_MAX_CARRY);
+		GiveAmmo(HORNET_MAX_CARRY, "hornets", HORNET_MAX_CARRY);
+		GiveAmmo(SNARK_MAX_CARRY, "Snarks", SNARK_MAX_CARRY);
+		GiveAmmo(SATCHEL_MAX_CARRY, "Satchel Charge", SATCHEL_MAX_CARRY);
 #endif
 		gEvilImpulse101 = FALSE;
 		break;
@@ -4009,6 +4267,23 @@ int CBasePlayer::RemovePlayerItem(CBasePlayerItem* pItem)
 	return FALSE;
 }
 
+#if HL_SDK25
+void CBasePlayer::SetPrefsFromUserinfo(char* infobuffer)
+{
+	const char* pszKeyVal;
+
+	// Set autoswitch preference
+	pszKeyVal = g_engfuncs.pfnInfoKeyValue(infobuffer, "cl_autowepswitch");
+	if (FStrEq(pszKeyVal, ""))
+	{
+		m_iAutoWepSwitch = 1;
+	}
+	else
+	{
+		m_iAutoWepSwitch = atoi(pszKeyVal);
+	}
+}
+#endif
 
 //
 // Returns the unique ID for the ammo, or -1 if error
@@ -4236,7 +4511,6 @@ void CBasePlayer::UpdateClientData(void)
 
 	if (pev->health != m_iClientHealth)
 	{
-#define clamp( val, min, max ) ( ((val) > (max)) ? (max) : ( ((val) < (min)) ? (min) : (val) ) )
 		int iHealth = clamp(pev->health, 0, 255); // make sure that no negative health values are sent
 		if (pev->health > 0.0f && pev->health <= 1.0f)
 			iHealth = 1;
@@ -4495,7 +4769,7 @@ Vector CBasePlayer::GetAutoaimVector(float flDelta)
 
 	// always use non-sticky autoaim
 	// UNDONE: use sever variable to chose!
-	if (1 || g_iSkillLevel == SKILL_MEDIUM)
+	if (g_iSkillLevel == SKILL_MEDIUM)
 	{
 		m_vecAutoAim = Vector(0, 0, 0);
 		// flDelta *= 0.5;
@@ -4533,7 +4807,7 @@ Vector CBasePlayer::GetAutoaimVector(float flDelta)
 
 	// always use non-sticky autoaim
 	// UNDONE: use sever variable to chose!
-	if (0 || g_iSkillLevel == SKILL_EASY)
+	if (g_iSkillLevel == SKILL_EASY)
 	{
 		m_vecAutoAim = m_vecAutoAim * 0.67 + angles * 0.33;
 	}
@@ -4545,7 +4819,11 @@ Vector CBasePlayer::GetAutoaimVector(float flDelta)
 	// m_vecAutoAim = m_vecAutoAim * 0.99;
 
 	// Don't send across network if sv_aim is 0
+#if HL_SDK25
+	if (g_psv_aim->value != 0 && g_psv_allow_autoaim->value != 0)
+#else
 	if (g_psv_aim->value != 0)
+#endif
 	{
 		if (m_vecAutoAim.x != m_lastx ||
 			m_vecAutoAim.y != m_lasty)
@@ -4577,7 +4855,11 @@ Vector CBasePlayer::AutoaimDeflection(Vector& vecSrc, float flDist, float flDelt
 	edict_t* bestent;
 	TraceResult tr;
 
+#if HL_SDK25
+	if (g_psv_aim->value == 0 || g_psv_allow_autoaim->value == 0)
+#else
 	if (g_psv_aim->value == 0)
+#endif
 	{
 		m_fOnTarget = FALSE;
 		return g_vecZero;
@@ -4691,6 +4973,34 @@ Vector CBasePlayer::AutoaimDeflection(Vector& vecSrc, float flDist, float flDelt
 	return Vector(0, 0, 0);
 }
 
+#if HL_SDK25
+//=========================================================
+// HasPlayerItemFromID
+// Just compare IDs, rather than classnames
+//=========================================================
+BOOL CBasePlayer::HasPlayerItemFromID(int nID)
+{
+	CBasePlayerItem* pItem;
+	int i;
+
+	for (i = 0; i < MAX_ITEM_TYPES; i++)
+	{
+		pItem = m_rgpPlayerItems[i];
+
+		while (pItem)
+		{
+			if (pItem->m_iId == nID)
+			{
+				return TRUE;
+			}
+
+			pItem = pItem->m_pNext;
+		}
+	}
+
+	return FALSE;
+}
+#endif
 
 void CBasePlayer::ResetAutoaim()
 {
@@ -4895,20 +5205,6 @@ BOOL CBasePlayer::SwitchWeapon(CBasePlayerItem* pWeapon)
 	pWeapon->Deploy();
 
 	return TRUE;
-}
-
-void CBasePlayer::SetPrefsFromUserinfo(char* infobuffer)
-{
-	const char* value = g_engfuncs.pfnInfoKeyValue(infobuffer, "cl_autowepswitch");
-
-	if (*value)
-	{
-		m_iAutoWepSwitch = atoi(value);
-	}
-	else
-	{
-		m_iAutoWepSwitch = 1;
-	}
 }
 
 //=========================================================

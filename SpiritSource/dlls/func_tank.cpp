@@ -840,9 +840,8 @@ void CFuncTank::TrackTarget(void)
 {
 	TraceResult tr;
 	//	edict_t *pPlayer;
-	BOOL updateTime = FALSE, lineOfSight;
+	BOOL updateTime = FALSE;
 	Vector angles, direction, targetPosition, barrelEnd;
-	Vector v_right, v_up;
 	CBaseEntity* pTarget;
 	CBasePlayer* pController = NULL;
 
@@ -980,18 +979,11 @@ void CFuncTank::TrackTarget(void)
 
 		if (tr.flFraction == 1.0 || tr.pHit == ENT(pTarget->pev))
 		{
-			lineOfSight = TRUE;
-
 			if (InRange(range) && pTarget->IsAlive())
 			{
 				updateTime = TRUE; // I think I saw him, pa!
 				m_sightOrigin = UpdateTargetPosition(pTarget);
 			}
-		}
-		else
-		{
-			// No line of sight, don't track
-			lineOfSight = FALSE;
 		}
 
 		// Track sight origin

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== subs.cpp ========================================================
@@ -673,6 +679,29 @@ BOOL CBaseToggle::IsLockedByMaster(void)
 	else
 		return TRUE;
 }
+
+#if HL_SDK25
+void CBaseToggle::PlaySentence(const char* pszSentence, float duration, float volume, float attenuation)
+{
+	if (pszSentence && IsAllowedToSpeak())
+	{
+		if (pszSentence[0] == '!')
+			EMIT_SOUND_DYN(edict(), CHAN_VOICE, pszSentence, volume, attenuation, 0, PITCH_NORM);
+		else
+			SENTENCEG_PlayRndSz(edict(), pszSentence, volume, attenuation, 0, PITCH_NORM);
+	}
+}
+
+void CBaseToggle::PlayScriptedSentence(const char* pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity* pListener)
+{
+	PlaySentence(pszSentence, duration, volume, attenuation);
+}
+
+void CBaseToggle::SentenceStop(void)
+{
+	EMIT_SOUND(edict(), CHAN_VOICE, "common/null.wav", 1.0, ATTN_IDLE);
+}
+#endif
 
 //LRC- mapping toggle-states to global states
 STATE CBaseToggle::GetState(void)

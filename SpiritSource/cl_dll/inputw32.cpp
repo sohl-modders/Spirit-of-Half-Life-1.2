@@ -5,6 +5,11 @@
 // $NoKeywords: $
 //=============================================================================
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 // in_win.c -- windows 95 mouse and joystick code
 // 02/21/97 JCB Added extended DirectInput code to support external controllers.
 
@@ -23,6 +28,9 @@
 #include "view.h"
 #include "Exports.h"
 
+#if HL_SDK25
+#include <SDL2/SDL_events.h>
+#endif
 #include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_gamecontroller.h>
 
@@ -60,7 +68,9 @@ extern cvar_t* cl_movespeedkey;
 
 #ifdef WIN32
 static double s_flRawInputUpdateTime = 0.0f;
+#ifndef HL_SDK25
 static bool m_bRawInput = false;
+#endif
 static bool m_bMouseThread = false;
 bool g_bIsMouseRelative = false;
 #endif
@@ -85,6 +95,15 @@ static cvar_t* m_customaccel_exponent;
 #ifdef WIN32
 // if threaded mouse is enabled then the time to sleep between polls
 static cvar_t* m_mousethread_sleep;
+#endif
+
+#if HL_SDK25
+static cvar_t* m_rawinput = nullptr;
+
+static bool IN_UseRawInput()
+{
+	return m_rawinput ? (m_rawinput->value != 0) : false;
+}
 #endif
 
 int mouse_buttons;
@@ -146,6 +165,9 @@ cvar_t* joy_advaxisz;
 cvar_t* joy_advaxisr;
 cvar_t* joy_advaxisu;
 cvar_t* joy_advaxisv;
+#if HL_SDK25
+cvar_t* joy_supported;
+#endif
 cvar_t* joy_forwardthreshold;
 cvar_t* joy_sidethreshold;
 cvar_t* joy_pitchthreshold;
@@ -157,7 +179,11 @@ cvar_t* joy_yawsensitivity;
 cvar_t* joy_wwhack1;
 cvar_t* joy_wwhack2;
 
+#if HL_SDK25
+int	joy_avail = 0, joy_advancedinit, joy_haspov;
+#else
 int joy_avail, joy_advancedinit, joy_haspov;
+#endif
 
 #ifdef _WIN32
 unsigned int s_hMouseThreadId = 0;
@@ -253,7 +279,7 @@ unsigned __stdcall MouseThread_Function(void* pArg)
 // Has to be interlocked manually by programmer! Use MouseThread_ActiveLock_Enter and MouseThread_ActiveLock_Exit.
 void UpdateMouseThreadActive(void)
 {
-	InterlockedExchange(&g_lMouseThreadActive, mouseactive && !g_iVisibleMouse && !m_bRawInput);
+	InterlockedExchange(&g_lMouseThreadActive, mouseactive && !g_iVisibleMouse && !IN_UseRawInput());
 }
 #endif
 
@@ -270,8 +296,7 @@ void IN_SetMouseMode(bool bEnable)
 		if (mouseparmsvalid)
 			restore_spi = SystemParametersInfo(SPI_SETMOUSE, 0, newmouseparms, 0);
 
-		m_bRawInput = CVAR_GET_FLOAT("m_rawinput") != 0.0f;
-		if (m_bRawInput)
+		if (IN_UseRawInput())
 		{
 			SDL_SetRelativeMouseMode(SDL_TRUE);
 			g_bIsMouseRelative = true;
@@ -313,6 +338,11 @@ void IN_SetVisibleMouse(bool bVisible)
 	if (bLockEntered)
 		MouseThread_ActiveLock_Exit();
 #endif
+}
+
+bool IN_GetVisibleMouse()
+{
+	return g_iVisibleMouse;
 }
 
 void IN_ResetMouse();
@@ -451,6 +481,29 @@ void IN_GetMousePos(int* mx, int* my)
 	gEngfuncs.GetMousePosition(mx, my);
 }
 
+#if HL_SDK25
+/*
+===========
+IN_GetMouseSensitivity
+Get mouse sensitivity with sanitization
+===========
+*/
+float IN_GetMouseSensitivity()
+{
+	// Absurdly high sensitivity values can cause the game to hang, so clamp
+	if (sensitivity->value > 10000.0)
+	{
+		gEngfuncs.Cvar_SetValue("sensitivity", 10000.0);
+	}
+	else if (sensitivity->value < 0.01)
+	{
+		gEngfuncs.Cvar_SetValue("sensitivity", 0.01);
+	}
+
+	return sensitivity->value;
+}
+#endif
+
 /*
 ===========
 IN_ResetMouse
@@ -465,7 +518,11 @@ void IN_ResetMouse(void)
 	// reset only if mouse is active and not in visible mode:
 	if (mouseactive && !g_iVisibleMouse)
 	{
+#if HL_SDK25
+		if (!IN_UseRawInput() && mouseactive && gEngfuncs.GetWindowCenterX() && gEngfuncs.GetWindowCenterY())
+#else
 		if (!m_bRawInput && gEngfuncs.GetWindowCenterX() && gEngfuncs.GetWindowCenterY())
+#endif
 		{
 			bool bLockEntered = MouseThread_ActiveLock_Enter();
 
@@ -484,6 +541,23 @@ void IN_ResetMouse(void)
 	}
 #endif
 }
+
+#if HL_SDK25
+/*
+===========
+IN_ResetRelativeMouseState
+===========
+*/
+void IN_ResetRelativeMouseState(void)
+{
+	if (IN_UseRawInput())
+	{
+		SDL_PumpEvents();
+		int deltaX, deltaY;
+		SDL_GetRelativeMouseState(&deltaX, &deltaY);
+	}
+}
+#endif
 
 /*
 ===========
@@ -528,7 +602,11 @@ void IN_ScaleMouse(float* x, float* y)
 	float my = *y;
 
 	// This is the default sensitivity
+#if HL_SDK25
+	float mouse_senstivity = (gHUD.GetSensitivity() != 0) ? gHUD.GetSensitivity() : IN_GetMouseSensitivity();
+#else
 	float mouse_senstivity = (gHUD.GetSensitivity() != 0) ? gHUD.GetSensitivity() : sensitivity->value;
+#endif
 
 	// Using special accleration values
 	if (m_customaccel->value != 0)
@@ -575,7 +653,11 @@ void IN_GetMouseDelta(int* piOutX, int* piOutY)
 	{
 		int iDeltaX, iDeltaY;
 #ifdef _WIN32
+#if HL_SDK25
+		if (!IN_UseRawInput())
+#else
 		if (!m_bRawInput)
+#endif
 		{
 			if (m_bMouseThread)
 			{
@@ -604,7 +686,11 @@ void IN_GetMouseDelta(int* piOutX, int* piOutY)
 		}
 
 #ifdef _WIN32
+#if HL_SDK25
+		if (!IN_UseRawInput())
+#else
 		if (!m_bRawInput)
+#endif
 		{
 			if (m_bMouseThread)
 			{
@@ -630,34 +716,37 @@ void IN_GetMouseDelta(int* piOutX, int* piOutY)
 		// reset mouse position if required, so there is room to move:
 #ifdef _WIN32
 		// do not reset if mousethread would do it:
+#if HL_SDK25
+		if (!IN_UseRawInput() || !m_bMouseThread)
+#else
 		if (m_bRawInput || !m_bMouseThread)
+#endif
 			IN_ResetMouse();
 #else
 		IN_ResetMouse();
 #endif
 
 #ifdef _WIN32
-		// update m_bRawInput occasionally: 
+		// update m_bRawInput occasionally:
 		if (gpGlobals && gpGlobals->time - s_flRawInputUpdateTime > 1.0f)
 		{
 			s_flRawInputUpdateTime = gpGlobals->time;
 
 			bool bLockEntered = MouseThread_ActiveLock_Enter();
 
-			m_bRawInput = CVAR_GET_FLOAT("m_rawinput") != 0.0f;
-
-			if (m_bRawInput && !g_bIsMouseRelative)
+			if (IN_UseRawInput() && !g_bIsMouseRelative)
 			{
 				SDL_SetRelativeMouseMode(SDL_TRUE);
 				g_bIsMouseRelative = true;
 			}
-			else if (!m_bRawInput && g_bIsMouseRelative)
+			else if (!IN_UseRawInput() && g_bIsMouseRelative)
 			{
 				SDL_SetRelativeMouseMode(SDL_FALSE);
 				g_bIsMouseRelative = false;
 			}
 
 			UpdateMouseThreadActive();
+
 			if (bLockEntered)
 				MouseThread_ActiveLock_Exit();
 		}
@@ -769,7 +858,7 @@ void DLLEXPORT IN_Accumulate(void)
 		if (mouseactive)
 		{
 #ifdef _WIN32
-			if (!m_bRawInput)
+			if (!IN_UseRawInput())
 			{
 				if (!m_bMouseThread)
 				{
@@ -790,7 +879,7 @@ void DLLEXPORT IN_Accumulate(void)
 
 #ifdef WIN32
 			// do not reset if mousethread would do it
-			if (m_bRawInput || !m_bMouseThread)
+			if (IN_UseRawInput() || !m_bMouseThread)
 				IN_ResetMouse();
 #else
 			IN_ResetMouse();
@@ -825,15 +914,33 @@ void IN_StartupJoystick(void)
 	if (gEngfuncs.CheckParm("-nojoy", NULL))
 		return;
 
+#if HL_SDK25
+	static float flLastCheck = 0.0f;
+	if (flLastCheck > 0.0f && (gEngfuncs.GetAbsoluteTime() - flLastCheck) < 1.0f)
+		return;
+
+	//gEngfuncs.Con_Printf("IN_StartupJoystick, %f\n", flLastCheck);
+
+	flLastCheck = gEngfuncs.GetAbsoluteTime();
+#else
 	// assume no joystick
 	joy_avail = 0;
+#endif
 
 	int nJoysticks = SDL_NumJoysticks();
 	if (nJoysticks > 0)
 	{
+#if HL_SDK25
+		if (s_pJoystick == NULL)
+#else
 		for (int i = 0; i < nJoysticks; i++)
+#endif
 		{
+#if HL_SDK25
+			for (int i = 0; i < nJoysticks; i++)
+#else
 			if (SDL_IsGameController(i))
+#endif
 			{
 				s_pJoystick = SDL_GameControllerOpen(i);
 				if (s_pJoystick)
@@ -847,7 +954,7 @@ void IN_StartupJoystick(void)
 
 					// mark the joystick as available and advanced initialization not completed
 					// this is needed as cvars are not available during initialization
-					gEngfuncs.Con_Printf("joystick found\n\n", SDL_GameControllerName(s_pJoystick));
+					gEngfuncs.Con_Printf("joystick found %s\n\n", SDL_GameControllerName(s_pJoystick));
 					joy_avail = 1;
 					joy_advancedinit = 0;
 					break;
@@ -857,7 +964,19 @@ void IN_StartupJoystick(void)
 	}
 	else
 	{
+#if HL_SDK25
+		if (s_pJoystick)
+			SDL_GameControllerClose(s_pJoystick);
+
+		s_pJoystick = NULL;
+		if (joy_avail)
+		{
+			joy_avail = 0;
+			gEngfuncs.Con_DPrintf("joystick not found -- driver not present\n\n");
+		}
+#else
 		gEngfuncs.Con_DPrintf("joystick not found -- driver not present\n\n");
+#endif
 	}
 }
 
@@ -1046,6 +1165,11 @@ void IN_JoyMove(float frametime, usercmd_t* cmd)
 		joy_advancedinit = 1;
 	}
 
+#if HL_SDK25
+	// re-scan for joystick presence
+	IN_StartupJoystick();
+#endif
+
 	// verify joystick is available and that the user wants to use it
 	if (!joy_avail || !in_joystick->value)
 	{
@@ -1232,7 +1356,11 @@ IN_Init
 void IN_Init(void)
 {
 	m_filter = gEngfuncs.pfnRegisterVariable("m_filter", "0", FCVAR_ARCHIVE);
+#if HL_SDK25
+	sensitivity = gEngfuncs.pfnRegisterVariable("sensitivity", "3", FCVAR_ARCHIVE | FCVAR_FILTERSTUFFTEXT); // user mouse sensitivity setting.
+#else
 	sensitivity = gEngfuncs.pfnRegisterVariable("sensitivity", "3", FCVAR_ARCHIVE); // user mouse sensitivity setting.
+#endif
 
 	in_joystick = gEngfuncs.pfnRegisterVariable("joystick", "0", FCVAR_ARCHIVE);
 	joy_name = gEngfuncs.pfnRegisterVariable("joyname", "joystick", 0);
@@ -1243,6 +1371,9 @@ void IN_Init(void)
 	joy_advaxisr = gEngfuncs.pfnRegisterVariable("joyadvaxisr", "0", 0);
 	joy_advaxisu = gEngfuncs.pfnRegisterVariable("joyadvaxisu", "0", 0);
 	joy_advaxisv = gEngfuncs.pfnRegisterVariable("joyadvaxisv", "0", 0);
+#if HL_SDK25
+	joy_supported = gEngfuncs.pfnRegisterVariable("joysupported", "1", 0);
+#endif
 	joy_forwardthreshold = gEngfuncs.pfnRegisterVariable("joyforwardthreshold", "0.15", 0);
 	joy_sidethreshold = gEngfuncs.pfnRegisterVariable("joysidethreshold", "0.15", 0);
 	joy_pitchthreshold = gEngfuncs.pfnRegisterVariable("joypitchthreshold", "0.15", 0);
@@ -1259,15 +1390,25 @@ void IN_Init(void)
 	m_customaccel_max = gEngfuncs.pfnRegisterVariable("m_customaccel_max", "0", FCVAR_ARCHIVE);
 	m_customaccel_exponent = gEngfuncs.pfnRegisterVariable("m_customaccel_exponent", "1", FCVAR_ARCHIVE);
 
+#if HL_SDK25
+	m_rawinput = gEngfuncs.pfnGetCvarPointer("m_rawinput");
+#endif
+
 #ifdef _WIN32
+# ifndef  HL_SDK25
 	m_bRawInput = CVAR_GET_FLOAT("m_rawinput") != 0.0f;
+#endif
 	m_bMouseThread = gEngfuncs.CheckParm("-mousethread", NULL) != NULL;
 	m_mousethread_sleep = gEngfuncs.pfnRegisterVariable("m_mousethread_sleep", "1", FCVAR_ARCHIVE);
 	// default to less than 1000 Hz
 
 	m_bMouseThread = m_bMouseThread && nullptr != m_mousethread_sleep;
 
+#if HL_SDK25
+	if(!IN_UseRawInput() && m_bMouseThread)
+#else
 	if (m_bMouseThread)
+#endif
 	{
 		// init mouseThreadSleep:
 		InterlockedExchange(&g_lMouseThreadSleep, (LONG)m_mousethread_sleep->value);

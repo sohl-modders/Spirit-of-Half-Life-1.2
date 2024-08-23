@@ -12,6 +12,12 @@
 *   use or distribution of this code by or to any unlicensed person is illegal.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #if !defined( OEM_BUILD ) && !defined( HLDEMO_BUILD )
 
 //=========================================================
@@ -795,12 +801,20 @@ void CHAssassin::RunAI(void)
 			EMIT_SOUND(ENT(pev), CHAN_BODY, "debris/beamstart1.wav", 0.2, ATTN_NORM);
 		}
 
+#if HL_SDK25
+		pev->renderamt = max<float>(pev->renderamt - 50, m_iTargetRanderamt);
+#else
 		pev->renderamt = V_max(pev->renderamt - 50, m_iTargetRanderamt);
+#endif
 		pev->rendermode = kRenderTransTexture;
 	}
 	else if (pev->renderamt < m_iTargetRanderamt)
 	{
+#if HL_SDK25
+		pev->renderamt = min<float>(pev->renderamt + 50, m_iTargetRanderamt);
+#else
 		pev->renderamt = V_min(pev->renderamt + 50, m_iTargetRanderamt);
+#endif
 		if (pev->renderamt == 255)
 			pev->rendermode = kRenderNormal;
 	}

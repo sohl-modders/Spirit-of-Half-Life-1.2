@@ -5,6 +5,11 @@
 // $NoKeywords: $
 //=============================================================================
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include "hud.h"
 #include "cl_util.h"
 #include "cl_entity.h"
@@ -208,7 +213,12 @@ void UTIL_StringToVector(float* pVector, const char* pString)
 	char *pstr, *pfront, tempString[128];
 	int j;
 
+#if HL_SDK25
+	strncpy(tempString, pString, sizeof(tempString));
+	tempString[sizeof(tempString) - 1] = '\0';
+#else
 	strcpy(tempString, pString);
+#endif
 	pstr = pfront = tempString;
 
 	for (j = 0; j < 3; j++)
@@ -801,7 +811,11 @@ void CHudSpectator::DirectorMessage(int iSize, void* pbuf)
 		break;
 
 	case DRC_CMD_STUFFTEXT:
+#if HL_SDK25
+		EngineFilteredClientCmd(READ_STRING());
+#else
 		EngineClientCmd(READ_STRING());
+#endif
 		break;
 
 	case DRC_CMD_CAMPATH:

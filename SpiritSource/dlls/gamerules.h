@@ -12,12 +12,22 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //=========================================================
 // GameRules
 //=========================================================
 
+#ifndef GAMERULES_H
+#define GAMERULES_H
+
 //LRC
-#define GAME_NAME "The Final Death of John Deepmind"
+#define GAME_NAME "SOHL"
+
 //#include "weapons.h"
 //#include "items.h"
 class CBasePlayerItem;
@@ -399,4 +409,35 @@ protected:
 	void SendMOTDToClient(edict_t* client);
 };
 
+#if HL_SDK25
+//=========================================================
+// CMultiplayBusters 
+// Rules for a multiplayer mode that makes you feel good
+//=========================================================
+class CMultiplayBusters : public CHalfLifeMultiplay
+{
+public:
+	CMultiplayBusters();
+
+	virtual void Think(void);
+	virtual int IPointsForKill(CBasePlayer* pAttacker, CBasePlayer* pKilled);
+	virtual void PlayerKilled(CBasePlayer* pVictim, entvars_t* pKiller, entvars_t* pInflictor);
+	virtual void DeathNotice(CBasePlayer* pVictim, entvars_t* pKiller, entvars_t* pInflictor);
+	virtual int WeaponShouldRespawn(CBasePlayerItem* pWeapon);
+	virtual BOOL CanHavePlayerItem(CBasePlayer* pPlayer, CBasePlayerItem* pWeapon);
+	virtual BOOL CanHaveItem(CBasePlayer* pPlayer, CItem* pItem);
+	virtual void PlayerGotWeapon(CBasePlayer* pPlayer, CBasePlayerItem* pWeapon);
+	virtual void ClientUserInfoChanged(CBasePlayer* pPlayer, char* infobuffer);
+	virtual void PlayerSpawn(CBasePlayer* pPlayer);
+
+	void SetPlayerModel(CBasePlayer* pPlayer);
+
+protected:
+
+	float m_flEgonBustingCheckTime = -1.0f;
+	void CheckForEgons(void);
+};
+#endif
+
 extern DLL_GLOBAL CGameRules* g_pGameRules;
+#endif // GAMERULES_H

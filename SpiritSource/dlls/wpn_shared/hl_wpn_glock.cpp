@@ -13,6 +13,11 @@
 *
 ****/
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -180,12 +185,16 @@ void CGlock::Reload(void)
 	if (m_pPlayer->ammo_9mm <= 0)
 		return;
 
+#if HL_SDK25
+	int iResult = DefaultReload(GLOCK_MAX_CLIP, m_iClip > 0 ? GLOCK_RELOAD_NOT_EMPTY : GLOCK_RELOAD, 1.5);
+#else
 	int iResult;
 
 	if (m_iClip == 0)
 		iResult = DefaultReload(17, GLOCK_RELOAD, 1.5);
 	else
 		iResult = DefaultReload(17, GLOCK_RELOAD_NOT_EMPTY, 1.5);
+#endif
 
 	if (iResult)
 	{

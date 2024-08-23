@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 //  hud_msg.cpp
 //
@@ -228,6 +234,15 @@ int CHud::MsgFunc_GameMode(const char* pszName, int iSize, void* pbuf)
 {
 	BEGIN_READ(pbuf, iSize);
 	m_Teamplay = READ_BYTE();
+
+#if HL_SDK25
+	if (m_Teamplay)
+		gEngfuncs.pfnClientCmd("richpresence_gamemode Teamplay\n");
+	else
+		gEngfuncs.pfnClientCmd("richpresence_gamemode\n"); // reset
+
+	gEngfuncs.pfnClientCmd("richpresence_update\n");
+#endif
 
 	return 1;
 }

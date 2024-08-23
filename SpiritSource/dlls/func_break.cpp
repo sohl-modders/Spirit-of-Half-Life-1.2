@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== bmodels.cpp ========================================================
@@ -1121,9 +1127,18 @@ void CPushable::Move(CBaseEntity* pOther, int push)
 
 	if (pOther->IsPlayer())
 	{
+#if HL_SDK25
+		// JoshA: Used to check for FORWARD too and logic was inverted
+		// from comment which seems wrong.
+		// Fixed to just check for USE being not set for PUSH.
+		// Should have the right effect.
+		if (push && !!(pevToucher->button & IN_USE))	// Don't push unless the player is not useing (pull)
+#else
 		if (push && !(pevToucher->button & (IN_FORWARD | IN_USE)))
+#endif
 			// Don't push unless the player is pushing forward and NOT use (pull)
 			return;
+
 		playerTouch = 1;
 	}
 
@@ -1147,19 +1162,55 @@ void CPushable::Move(CBaseEntity* pOther, int push)
 	if (!push)
 		factor = factor * 0.5;
 
+#if HL_SDK25
+	// This used to be added every 'frame', but to be consistent at high fps,
+	// now act as if it's added at a constant rate with a fudge factor.
+	extern cvar_t sv_pushable_fixed_tick_fudge;
+
+	if (!push && sv_pushable_fixed_tick_fudge.value >= 0.0f)
+	{
+		factor *= gpGlobals->frametime * sv_pushable_fixed_tick_fudge.value;
+	}
+
+	// JoshA: Always apply this if pushing, or if under the player's velocity.
+	if (push || (abs(pev->velocity.x) < abs(pevToucher->velocity.x - pevToucher->velocity.x * factor)))
+		pev->velocity.x += pevToucher->velocity.x * factor;
+	if (push || (abs(pev->velocity.y) < abs(pevToucher->velocity.y - pevToucher->velocity.y * factor)))
+		pev->velocity.y += pevToucher->velocity.y * factor;
+#else
 	pev->velocity.x += pevToucher->velocity.x * factor;
 	pev->velocity.y += pevToucher->velocity.y * factor;
+#endif
 
 	float length = sqrt(pev->velocity.x * pev->velocity.x + pev->velocity.y * pev->velocity.y);
+#if HL_SDK25
+	if (length > MaxSpeed())
+#else
 	if (push && (length > MaxSpeed()))
+#endif
 	{
 		pev->velocity.x = (pev->velocity.x * MaxSpeed() / length);
 		pev->velocity.y = (pev->velocity.y * MaxSpeed() / length);
 	}
+
 	if (playerTouch)
 	{
+
+#if HL_SDK25
+		// JoshA: Match the player to our pushable's velocity.
+		// Previously this always happened, but it should only
+		// happen if the player is pushing (or rather, being pushed.)
+		// This either stops the player in their tracks or nudges them along.
+		if (push)
+		{
+			pevToucher->velocity.x = pev->velocity.x;
+			pevToucher->velocity.y = pev->velocity.y;
+		}
+#else
 		pevToucher->velocity.x = pev->velocity.x;
 		pevToucher->velocity.y = pev->velocity.y;
+#endif
+
 		if ((gpGlobals->time - m_soundTime) > 0.7)
 		{
 			m_soundTime = gpGlobals->time;

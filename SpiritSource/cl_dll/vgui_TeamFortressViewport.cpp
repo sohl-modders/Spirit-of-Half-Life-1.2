@@ -60,6 +60,7 @@
 #include "gameui.h"
 
 void IN_SetVisibleMouse(bool bVisible);
+bool IN_GetVisibleMouse();
 class CCommandMenu;
 int g_iPlayerClass;
 int g_iTeamNumber;
@@ -79,6 +80,9 @@ int g_iUser3 = 0;
 #define SBOARD_INDENT_Y_400		20
 
 void IN_ResetMouse(void);
+#if HL_SDK25
+void IN_ResetRelativeMouseState(void);
+#endif
 extern CMenuPanel* CMessageWindowPanel_Create(const char* szMOTD, const char* szTitle, int iShadeFullscreen,
                                               int iRemoveMe, int x, int y, int wide, int tall);
 extern float* GetClientColor(int clientIndex);
@@ -851,8 +855,12 @@ int TeamFortressViewport::CreateCommandMenu(const char* menuFile, int direction,
 
 				// Get the button text
 				pfile = gEngfuncs.COM_ParseFile(pfile, token);
+#if HL_SDK25
+				CHudTextMessage::LocaliseTextString(token, cText, sizeof(cText));
+#else
 				strncpy(cText, token, 32);
 				cText[31] = '\0';
+#endif
 
 				// save off the last button text we've come across (for error reporting)
 				strcpy(szLastButtonText, cText);
@@ -2126,6 +2134,14 @@ void TeamFortressViewport::UpdateCursorState()
 	{
 		IN_ResetMouse();
 	}
+
+#if HL_SDK25
+	if (IN_GetVisibleMouse())
+	{
+		//Clear any residual input so our camera doesn't jerk when dismissing the UI
+		IN_ResetRelativeMouseState();
+	}
+#endif
 }
 
 void TeamFortressViewport::UpdateHighlights()

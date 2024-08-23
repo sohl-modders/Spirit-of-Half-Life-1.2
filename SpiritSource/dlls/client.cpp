@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 // Robin, 4-22-98: Moved set_suicide_frame() here from player.cpp to allow us to 
 //				   have one without a hardcoded player.mdl in tf_client.cpp
 
@@ -507,7 +513,10 @@ ClientCommand
 called each time a player uses a "cmd" command
 ============
 */
+
+#ifndef HL_SDK25
 extern float g_flWeaponCheat;
+#endif
 
 // Use CMD_ARGV,  CMD_ARGV, and CMD_ARGC to get pointers the character string command.
 void ClientCommand(edict_t* pEntity)
@@ -528,7 +537,11 @@ void ClientCommand(edict_t* pEntity)
 
 	else if (FStrEq(pcmd, "fire")) //LRC - trigger entities manually
 	{
+#if HL_SDK25
+		if (CVAR_GET_FLOAT("sv_cheats"))
+#else
 		if (g_flWeaponCheat)
+#endif
 		{
 			CBaseEntity* pPlayer = CBaseEntity::Instance(pEntity);
 			if (CMD_ARGC() > 1)
@@ -569,7 +582,11 @@ void ClientCommand(edict_t* pEntity)
 	}
 	else if (FStrEq(pcmd, "give"))
 	{
-		if (g_flWeaponCheat != 0.0)
+#if HL_SDK25
+		if (CVAR_GET_FLOAT("sv_cheats"))
+#else
+		if (g_flWeaponCheat)
+#endif
 		{
 			int iszItem = ALLOC_STRING(CMD_ARGV(1)); // Make a copy of the classname
 			GetClassPtr((CBasePlayer*)pev)->GiveNamedItem(STRING(iszItem));
@@ -583,7 +600,11 @@ void ClientCommand(edict_t* pEntity)
 	}
 	else if (FStrEq(pcmd, "fov"))
 	{
+#if HL_SDK25
+		if (CVAR_GET_FLOAT("sv_cheats") && CMD_ARGC() > 1)
+#else
 		if (g_flWeaponCheat && CMD_ARGC() > 1)
+#endif
 		{
 			GetClassPtr((CBasePlayer*)pev)->m_iFOV = atoi(CMD_ARGV(1));
 		}
@@ -655,6 +676,16 @@ void ClientCommand(edict_t* pEntity)
 		// max total length is 192 ...and we're adding a string below ("Unknown command: %s\n")
 		strncpy(command, pcmd, 127);
 		command[127] = '\0';
+
+#if HL_SDK25
+		// First parse the name and remove any %'s
+		for (char* pApersand = command; pApersand != NULL && *pApersand != 0; pApersand++)
+		{
+			// Replace it with a space
+			if (*pApersand == '%')
+				*pApersand = ' ';
+		}
+#endif
 
 		// tell the user they entered an unknown command
 		ClientPrint(&pEntity->v, HUD_PRINTCONSOLE, UTIL_VarArgs("Unknown command: %s\n", command));
@@ -937,6 +968,9 @@ void ClientPrecache(void)
 	PRECACHE_SOUND("debris/wood3.wav");
 
 	PRECACHE_SOUND("plats/train_use1.wav"); // use a train
+#if HL_SDK25
+	PRECACHE_SOUND("plats/vehicle_ignition.wav");
+#endif
 
 	PRECACHE_SOUND("buttons/spark5.wav"); // hit computer texture
 	PRECACHE_SOUND("buttons/spark6.wav");
@@ -1336,6 +1370,14 @@ int AddToFullPack(struct entity_state_s* state, int e, edict_t* ent, edict_t* ho
 		state->health = ent->v.health;
 	}
 
+#if HL_SDK25
+	CBaseEntity* pEntity = static_cast<CBaseEntity*>(GET_PRIVATE(ent));
+	if (pEntity && pEntity->Classify() != CLASS_NONE && pEntity->Classify() != CLASS_MACHINE)
+		state->eflags |= EFLAG_FLESH_SOUND;
+	else
+		state->eflags &= ~EFLAG_FLESH_SOUND;
+#endif
+
 	return 1;
 }
 
@@ -1698,23 +1740,30 @@ int GetWeaponData(struct edict_s* player, struct weapon_data_s* info)
 
 						item->m_iId = II.iId;
 						item->m_iClip = gun->m_iClip;
-
+#if HL_SDK25
+						item->m_flTimeWeaponIdle = max(gun->m_flTimeWeaponIdle, -0.001f);
+						item->m_flNextPrimaryAttack = max(gun->m_flNextPrimaryAttack, -0.001f);
+						item->m_flNextSecondaryAttack = max(gun->m_flNextSecondaryAttack, -0.001f);
+#else
 						item->m_flTimeWeaponIdle = V_max(gun->m_flTimeWeaponIdle, -0.001);
 						item->m_flNextPrimaryAttack = V_max(gun->m_flNextPrimaryAttack, -0.001);
 						item->m_flNextSecondaryAttack = V_max(gun->m_flNextSecondaryAttack, -0.001);
+#endif
 						item->m_fInReload = gun->m_fInReload;
 						item->m_fInSpecialReload = gun->m_fInSpecialReload;
+#if HL_SDK25
+						item->fuser1 = max(gun->pev->fuser1, -0.001f);
+#else
 						item->fuser1 = V_max(gun->pev->fuser1, -0.001);
+#endif
 						item->fuser2 = gun->m_flStartThrow;
 						item->fuser3 = gun->m_flReleaseThrow;
 						item->iuser1 = gun->m_chargeReady;
 						item->iuser2 = gun->m_fInAttack;
 						item->iuser3 = gun->m_fireState;
-
-
-						//						item->m_flPumpTime				= V_max( gun->m_flPumpTime, -0.001 );
 					}
 				}
+
 				pPlayerItem = pPlayerItem->m_pNext;
 			}
 		}

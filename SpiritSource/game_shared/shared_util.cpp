@@ -7,6 +7,11 @@
 
 // Author: Matthew D. Campbell (matt@turtlerockstudios.com), 2003
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include <port.h>
 #include <stdarg.h>
 #include "shared_util.h"
@@ -203,7 +208,11 @@ skipwhite:
 	if (c == s_shared_quote)
 	{
 		data++;
+#if HL_SDK25
+		while (len < sizeof(s_shared_token) - 1)
+#else
 		while (1)
+#endif
 		{
 			c = *data++;
 			if (c==s_shared_quote || !c)
@@ -217,24 +226,52 @@ skipwhite:
 	}
 
 // parse single characters
-	if (c=='{' || c=='}'|| c==')'|| c=='(' || c=='\'' || c == ',' )
+#if HL_SDK25
+	if (len < sizeof(s_shared_token) - 1)
+#else
+	if (c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ',')
+#endif
 	{
+#if HL_SDK25
+		if (c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ',')
+		{
+			s_shared_token[len] = c;
+			len++;
+			s_shared_token[len] = 0;
+			return data + 1;
+		}
+#else
 		s_shared_token[len] = c;
 		len++;
 		s_shared_token[len] = 0;
-		return data+1;
+		return data + 1;
+#endif
 	}
 
 // parse a regular word
+#if HL_SDK25
+	while (len < sizeof(s_shared_token) - 1)
+#else
 	do
+#endif
 	{
 		s_shared_token[len] = c;
 		data++;
 		len++;
 		c = *data;
-	if (c=='{' || c=='}'|| c==')'|| c=='(' || c=='\'' || c == ',' )
+
+#if HL_SDK25
+		if (c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ',')
 			break;
-	} while (c>32);
+
+		if (c <= 32)
+			break;
+	}
+#else
+		if (c == '{' || c == '}' || c == ')' || c == '(' || c == '\'' || c == ',')
+			break;
+	} while (c > 32);
+#endif
 	
 	s_shared_token[len] = 0;
 	return data;

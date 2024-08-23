@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // Geiger.cpp
 //
@@ -67,14 +73,26 @@ int CHudGeiger::Draw(float flTime)
 	int rg[3];
 	int i;
 
+#if HL_SDK25
+	if (m_iGeigerRange < 1000 && m_iGeigerRange > 0)
+#else
 	if (m_iGeigerRange <= 800 && m_iGeigerRange > 0)
+#endif
 	{
 		// peicewise linear is better than continuous formula for this
+#if HL_SDK25
 		if (m_iGeigerRange > 800)
 		{
 			pct = 0; //Con_Printf ( "range > 800\n");
 		}
 		else if (m_iGeigerRange > 600)
+#else
+		if (m_iGeigerRange > 800)
+		{
+			pct = 0; //Con_Printf ( "range > 800\n");
+		}
+		else if (m_iGeigerRange > 600)
+#endif
 		{
 			pct = 2;
 			flvol = 0.4; //Con_Printf ( "range > 600\n");

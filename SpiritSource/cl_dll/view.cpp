@@ -1,4 +1,24 @@
-// view/refresh setup functions
+/***
+*
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
+ // view/refresh setup functions
 
 #include "hud.h"
 #include "cl_util.h"
@@ -199,8 +219,13 @@ float V_CalcBob(struct ref_params_s* pparams)
 
 	bob = sqrt(vel[0] * vel[0] + vel[1] * vel[1]) * cl_bob->value;
 	bob = bob * 0.3 + bob * 0.7 * sin(cycle);
+#if HL_SDK25
+	bob = min(bob, 4.0f);
+	bob = max(bob, -7.0f);
+#else
 	bob = V_min(bob, 4);
 	bob = V_max(bob, -7);
+#endif
 	return bob;
 }
 
@@ -374,8 +399,10 @@ void V_CalcGunAngle(struct ref_params_s* pparams)
 	viewent->angles[PITCH] -= v_idlescale * sin(pparams->time * v_ipitch_cycle.value) * (v_ipitch_level.value * 0.5);
 	viewent->angles[YAW] -= v_idlescale * sin(pparams->time * v_iyaw_cycle.value) * v_iyaw_level.value;
 
+#ifndef HL_SDK25
 	VectorCopy(viewent->angles, viewent->curstate.angles);
 	VectorCopy(viewent->angles, viewent->latched.prevangles);
+#endif
 }
 
 /*
@@ -721,7 +748,6 @@ void V_CalcNormalRefdef(struct ref_params_s* pparams)
 	V_DropPunchAngle(pparams->frametime, (float*)&ev_punchangle);
 
 	// smooth out stair step ups
-#if 1
 	if (!pparams->smoothing && pparams->onground && pparams->simorg[2] - oldz > 0)
 	{
 		float steptime;
@@ -743,23 +769,21 @@ void V_CalcNormalRefdef(struct ref_params_s* pparams)
 	{
 		oldz = pparams->simorg[2];
 	}
-#endif
 
+	static float lastorg[3];
+	vec3_t delta;
+
+	VectorSubtract(pparams->simorg, lastorg, delta);
+
+	if (Length(delta) != 0.0)
 	{
-		static float lastorg[3];
-		vec3_t delta;
+		VectorCopy(pparams->simorg, ViewInterp.Origins[ViewInterp.CurrentOrigin & ORIGIN_MASK]);
+		ViewInterp.OriginTime[ViewInterp.CurrentOrigin & ORIGIN_MASK] = pparams->time;
+		ViewInterp.CurrentOrigin++;
 
-		VectorSubtract(pparams->simorg, lastorg, delta);
-
-		if (Length(delta) != 0.0)
-		{
-			VectorCopy(pparams->simorg, ViewInterp.Origins[ ViewInterp.CurrentOrigin & ORIGIN_MASK ]);
-			ViewInterp.OriginTime[ViewInterp.CurrentOrigin & ORIGIN_MASK] = pparams->time;
-			ViewInterp.CurrentOrigin++;
-
-			VectorCopy(pparams->simorg, lastorg);
-		}
+		VectorCopy(pparams->simorg, lastorg);
 	}
+
 
 	// Smooth out whole view in multiplayer when on trains, lifts
 	if (cl_vsmoothing && cl_vsmoothing->value &&
@@ -852,6 +876,17 @@ void V_CalcNormalRefdef(struct ref_params_s* pparams)
 			v_angles = pparams->viewangles;
 		}
 	}
+
+#if HL_SDK25
+	// Update the latched view origin/angles here, this was
+	// previously done in V_CalcGunAngle but that happens
+	// before a bunch of other stuff happens, which nukes
+	// a bunch of the viewbob fx.
+	VectorCopy(view->origin, view->curstate.origin);
+	VectorCopy(view->origin, view->latched.prevorigin);
+	VectorCopy(view->angles, view->curstate.angles);
+	VectorCopy(view->angles, view->latched.prevangles);
+#endif
 
 	lasttime = pparams->time;
 
@@ -1709,7 +1744,11 @@ void V_DropPunchAngle(float frametime, float* ev_punchangle)
 
 	len = VectorNormalize(ev_punchangle);
 	len -= (10.0 + len * 0.5) * frametime;
+#if HL_SDK25
+	len = max(len, 0.0f);
+#else
 	len = V_max(len, 0.0);
+#endif
 	VectorScale(ev_punchangle, len, ev_punchangle);
 }
 
@@ -1743,7 +1782,11 @@ void V_Init(void)
 
 	cl_bobcycle = gEngfuncs.pfnRegisterVariable("cl_bobcycle", "0.8", 0);
 	// best default for my experimental gun wag (sjb)
+#if HL_SDK25
+	cl_bob = gEngfuncs.pfnRegisterVariable("cl_bob", "0.01", FCVAR_ARCHIVE);// best default for my experimental gun wag (sjb)
+#else
 	cl_bob = gEngfuncs.pfnRegisterVariable("cl_bob", "0.01", 0); // best default for my experimental gun wag (sjb)
+#endif
 	cl_bobup = gEngfuncs.pfnRegisterVariable("cl_bobup", "0.5", 0);
 	cl_waterdist = gEngfuncs.pfnRegisterVariable("cl_waterdist", "4", 0);
 	cl_chasedist = gEngfuncs.pfnRegisterVariable("cl_chasedist", "112", 0);

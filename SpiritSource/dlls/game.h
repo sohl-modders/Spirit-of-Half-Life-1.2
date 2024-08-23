@@ -13,6 +13,11 @@
 *
 ****/
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #ifndef GAME_H
 #define GAME_H
 
@@ -40,6 +45,9 @@ extern cvar_t	allowmonsters;
 // Engine Cvars
 extern cvar_t	*g_psv_gravity;
 extern cvar_t	*g_psv_aim;
+#if HL_SDK25
+extern cvar_t	*g_psv_allow_autoaim;
+#endif
 extern cvar_t	*g_footsteps;
 
 #endif		// GAME_H

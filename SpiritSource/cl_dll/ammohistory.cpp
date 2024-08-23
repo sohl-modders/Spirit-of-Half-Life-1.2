@@ -12,11 +12,15 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 //  ammohistory.cpp
 //
-
-
 #include "hud.h"
 #include "cl_util.h"
 #include "parsemsg.h"
@@ -131,11 +135,20 @@ int HistoryResource::DrawAmmoHistory(float flTime)
 				int r, g, b;
 				UnpackRGB(r, g, b, gHUD.m_iHUDColor);
 				float scale = (rgAmmoHistory[i].DisplayTime - flTime) * 80;
+#if HL_SDK25
+				ScaleColors(r, g, b, min<int>(scale, 255));
+#else
 				ScaleColors(r, g, b, V_min(scale, 255));
+#endif
 
 				// Draw the pic
 				int ypos = ScreenHeight - (AMMO_PICKUP_PICK_HEIGHT + (AMMO_PICKUP_GAP * i));
+
+#if HL_SDK25
+				int xpos = ScreenWidth - (rcPic.right - rcPic.left) - 4;
+#else
 				int xpos = ScreenWidth - 24;
+#endif
 				if (spr && *spr) // weapon isn't loaded yet so just don't draw the pic
 				{
 					// the dll has to make sure it has sent info the weapons you need
@@ -160,7 +173,11 @@ int HistoryResource::DrawAmmoHistory(float flTime)
 					UnpackRGB(r, g, b, RGB_REDISH); // if the weapon doesn't have ammo, display it as red
 
 				float scale = (rgAmmoHistory[i].DisplayTime - flTime) * 80;
+#if HL_SDK25
+				ScaleColors(r, g, b, min<int>(scale, 255));
+#else
 				ScaleColors(r, g, b, V_min(scale, 255));
+#endif
 
 				int ypos = ScreenHeight - (AMMO_PICKUP_PICK_HEIGHT + (AMMO_PICKUP_GAP * i));
 				int xpos = ScreenWidth - (weap->rcInactive.right - weap->rcInactive.left);
@@ -178,7 +195,11 @@ int HistoryResource::DrawAmmoHistory(float flTime)
 
 				UnpackRGB(r, g, b, gHUD.m_iHUDColor);
 				float scale = (rgAmmoHistory[i].DisplayTime - flTime) * 80;
+#if HL_SDK25
+				ScaleColors(r, g, b, min<int>(scale, 255));
+#else
 				ScaleColors(r, g, b, V_min(scale, 255));
+#endif
 
 				int ypos = ScreenHeight - (AMMO_PICKUP_PICK_HEIGHT + (AMMO_PICKUP_GAP * i));
 				int xpos = ScreenWidth - (rect.right - rect.left) - 10;
@@ -188,7 +209,6 @@ int HistoryResource::DrawAmmoHistory(float flTime)
 			}
 		}
 	}
-
 
 	return 1;
 }

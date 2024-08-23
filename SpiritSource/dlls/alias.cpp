@@ -4,6 +4,12 @@
 * Created 19/11/00
 *
 ***/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== alias.cpp ========================================================
@@ -127,7 +133,12 @@ void CInfoGroup::KeyValue(KeyValueData* pkvd)
 	else if (m_cMembers < MAX_MULTI_TARGETS)
 	{
 		char tmp[128];
+#if HL_SDK25
+		UTIL_StripToken(pkvd->szKeyName, tmp, sizeof(tmp));
+#else
 		UTIL_StripToken(pkvd->szKeyName, tmp);
+#endif
+
 		m_iszMemberName[m_cMembers] = ALLOC_STRING(tmp);
 		m_iszMemberValue[m_cMembers] = ALLOC_STRING(pkvd->szValue);
 		m_cMembers++;
@@ -220,7 +231,12 @@ void CMultiAlias::KeyValue(KeyValueData* pkvd)
 	else if (m_cTargets < MAX_MULTI_TARGETS)
 	{
 		char tmp[128];
+
+#if HL_SDK25
+		UTIL_StripToken(pkvd->szKeyName,tmp,sizeof(tmp));
+#else
 		UTIL_StripToken(pkvd->szKeyName, tmp);
+#endif
 
 		m_iszTargets[m_cTargets] = ALLOC_STRING(tmp);
 		m_iValues[m_cTargets] = atoi(pkvd->szValue);

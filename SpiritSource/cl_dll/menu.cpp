@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // menu.cpp
 //
@@ -144,6 +150,12 @@ int CHudMenu::Draw(float flTime)
 	if (gViewPort && gViewPort->IsScoreBoardVisible())
 		return 1;
 
+#if HL_SDK25
+	SCREENINFO screenInfo;
+	screenInfo.iSize = sizeof(SCREENINFO);
+	gEngfuncs.pfnGetScreenInfo(&screenInfo);
+#endif
+
 	// draw the menu, along the left-hand side of the screen
 
 	// count the number of newlines
@@ -156,7 +168,12 @@ int CHudMenu::Draw(float flTime)
 	}
 
 	// center it
+#if HL_SDK25
+	int nFontHeight = max(12, screenInfo.iCharHeight);
+	int y = (ScreenHeight / 2) - ((nlc / 2) * nFontHeight) - (3 * nFontHeight + nFontHeight / 3); // make sure it is above the say text
+#else
 	int y = (ScreenHeight / 2) - ((nlc / 2) * 12) - 40; // make sure it is above the say text
+#endif
 
 	menu_r = 255;
 	menu_g = 255;
@@ -176,7 +193,11 @@ int CHudMenu::Draw(float flTime)
 		{
 			menu_ralign = FALSE;
 			menu_x = 20;
+#if HL_SDK25
+			y += nFontHeight;
+#else
 			y += (12);
+#endif
 
 			sptr++;
 		}

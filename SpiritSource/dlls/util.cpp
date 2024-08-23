@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== util.cpp ========================================================
@@ -1731,7 +1737,12 @@ void UTIL_StringToVector(float* pVector, const char* pString)
 	char *pstr, *pfront, tempString[128];
 	int j;
 
+#if HL_SDK25
+	strncpy(tempString, pString, sizeof(tempString));
+	tempString[sizeof(tempString) - 1] = '\0';
+#else
 	strcpy(tempString, pString);
+#endif
 	pstr = pfront = tempString;
 
 	for (j = 0; j < 3; j++) // lifted from pr_edict.c
@@ -1806,7 +1817,12 @@ void UTIL_StringToIntArray(int* pVector, int count, const char* pString)
 	char *pstr, *pfront, tempString[128];
 	int j;
 
+#if HL_SDK25
+	strncpy(tempString, pString, sizeof(tempString));
+	tempString[sizeof(tempString) - 1] = '\0';
+#else
 	strcpy(tempString, pString);
+#endif
 	pstr = pfront = tempString;
 
 	for (j = 0; j < count; j++) // lifted from pr_edict.c
@@ -2017,11 +2033,19 @@ float UTIL_DotPoints(const Vector& vecSrc, const Vector& vecCheck, const Vector&
 //=========================================================
 // UTIL_StripToken - for redundant keynames
 //=========================================================
+#if HL_SDK25
+void UTIL_StripToken(const char* pKey, char* pDest, int nLen)
+#else
 void UTIL_StripToken(const char* pKey, char* pDest)
+#endif
 {
 	int i = 0;
 
+#if HL_SDK25
+	while (i < nLen - 1 && pKey[i] && pKey[i] != '#')
+#else
 	while (pKey[i] && pKey[i] != '#')
+#endif
 	{
 		pDest[i] = pKey[i];
 		i++;
@@ -2288,8 +2312,6 @@ void CSave::WriteFloat(const char* pname, const float* data, int count)
 void CSave::WriteTime(const char* pname, const float* data, int count)
 {
 	int i;
-	Vector tmp, input;
-
 	BufferHeader(pname, sizeof(float) * count);
 	for (i = 0; i < count; i++)
 	{
@@ -2373,7 +2395,6 @@ void CSave::WritePositionVector(const char* pname, const Vector& value)
 void CSave::WritePositionVector(const char* pname, const float* value, int count)
 {
 	int i;
-	Vector tmp, input;
 
 	BufferHeader(pname, sizeof(float) * 3 * count);
 	for (i = 0; i < count; i++)
@@ -2651,7 +2672,11 @@ int CRestore::ReadField(void* pBaseData, TYPEDESCRIPTION* pFields, int fieldCoun
 	{
 		fieldNumber = (i + startField) % fieldCount;
 		pTest = &pFields[fieldNumber];
+#if HL_SDK25
+		if (pTest->fieldName && !stricmp(pTest->fieldName, pName))
+#else
 		if (!stricmp(pTest->fieldName, pName))
+#endif
 		{
 			if (!m_global || !(pTest->flags & FTYPEDESC_GLOBAL))
 			{

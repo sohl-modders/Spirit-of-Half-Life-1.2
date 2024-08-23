@@ -88,7 +88,6 @@ void CFlyingMonster::Stop(void)
 	m_vecTravel = g_vecZero;
 }
 
-
 float CFlyingMonster::ChangeYaw(int speed)
 {
 	if (pev->movetype == MOVETYPE_FLY)
@@ -104,7 +103,7 @@ float CFlyingMonster::ChangeYaw(int speed)
 				target = -90;
 		}
 
-		if (m_flLastZYawTime == 0)
+		if (m_flLastZYawTime == 0.0f)
 		{
 			m_flLastZYawTime = gpGlobals->time - gpGlobals->frametime;
 		}
@@ -113,12 +112,12 @@ float CFlyingMonster::ChangeYaw(int speed)
 
 		m_flLastZYawTime = gpGlobals->time;
 
-		if (delta > 0.25)
+		if (delta > 0.25f)
 		{
-			delta = 0.25;
+			delta = 0.25f;
 		}
 
-		pev->angles.z = UTIL_Approach(target, pev->angles.z, 220.0 * delta);
+		pev->angles.z = UTIL_Approach(target, pev->angles.z, 220.0f * delta);
 	}
 	return CBaseMonster::ChangeYaw(speed);
 }

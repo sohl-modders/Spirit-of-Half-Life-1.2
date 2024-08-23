@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // Message.cpp
 //
@@ -20,6 +26,9 @@
 
 #include "hud.h"
 #include "cl_util.h"
+#if HL_SDK25
+#include "commonmacros.h"
+#endif
 #include <string.h>
 #include <stdio.h>
 #include "parsemsg.h"
@@ -58,6 +67,9 @@ void CHudMessage::Reset(void)
 	memset(m_pMessages, 0, sizeof(m_pMessages[0]) * maxHUDMessages);
 	memset(m_startTime, 0, sizeof(m_startTime[0]) * maxHUDMessages);
 
+#if HL_SDK25
+	m_bEndAfterMessage = false;
+#endif
 	m_gameTitleTime = 0;
 	m_pGameTitle = NULL;
 }
@@ -147,13 +159,18 @@ void CHudMessage::MessageScanNextChar(void)
 	srcGreen = m_parms.pMessage->g1;
 	srcBlue = m_parms.pMessage->b1;
 	blend = 0; // Pure source
+#ifndef HL_SDK25
 	destRed = destGreen = destBlue = 0;
+#endif
 
 	switch (m_parms.pMessage->effect)
 	{
 		// Fade-in / Fade-out
 	case 0:
 	case 1:
+#if HL_SDK25
+		destRed = destGreen = destBlue = 0;
+#endif
 		blend = m_parms.fadeBlend;
 		break;
 
@@ -168,6 +185,9 @@ void CHudMessage::MessageScanNextChar(void)
 		{
 			float deltaTime = m_parms.time - m_parms.charTime;
 
+#if HL_SDK25
+			destRed = destGreen = destBlue = 0;
+#endif
 			if (m_parms.time > m_parms.fadeTime)
 			{
 				blend = m_parms.fadeBlend;
@@ -257,7 +277,11 @@ void CHudMessage::MessageDrawScan(client_textmessage_t* pMessage, float time)
 	length = 0;
 	width = 0;
 	m_parms.totalWidth = 0;
+#if HL_SDK25
+	while (*pText && *pText != '\n' && m_parms.lineLength < ARRAYSIZE(line) - 1)
+#else
 	while (*pText)
+#endif
 	{
 		if (*pText == '\n')
 		{
@@ -408,6 +432,14 @@ int CHudMessage::Draw(float fTime)
 			{
 				// The message is over
 				m_pMessages[i] = NULL;
+
+#if HL_SDK25
+				if (m_bEndAfterMessage)
+				{
+					// leave game
+					gEngfuncs.pfnClientCmd("wait\nwait\nwait\nwait\nwait\nwait\nwait\ndisconnect\n");
+				}
+#endif
 			}
 		}
 	}
@@ -492,6 +524,16 @@ int CHudMessage::MsgFunc_HudText(const char* pszName, int iSize, void* pbuf)
 	BEGIN_READ(pbuf, iSize);
 
 	char* pString = READ_STRING();
+
+#if HL_SDK25
+	bool bIsEnding = false;
+	const char* HL1_ENDING_STR = "END3";
+
+	if (strlen(pString) == strlen(HL1_ENDING_STR) && strcmp(HL1_ENDING_STR, pString) == 0)
+	{
+		m_bEndAfterMessage = true;
+	}
+#endif
 
 	MessageAdd(pString, gHUD.m_flTime);
 	// Remember the time -- to fix up level transitions

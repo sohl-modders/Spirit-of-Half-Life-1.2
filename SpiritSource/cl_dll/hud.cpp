@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // hud.cpp
 //
@@ -82,7 +88,11 @@ static CHLVoiceStatusHelper g_VoiceStatusHelper;
 
 extern client_sprite_t* GetSpriteList(client_sprite_t* pList, const char* psz, int iRes, int iCount);
 
+#if HL_SDK25
+extern float IN_GetMouseSensitivity();
+#else
 extern cvar_t* sensitivity;
+#endif
 cvar_t* cl_lw = NULL;
 
 void ShutdownInput(void);
@@ -324,7 +334,7 @@ void __CmdFunc_ModVersion()
 {
 	gEngfuncs.Con_Printf("-----------------------------------\n");
 	gEngfuncs.Con_Printf("- Build date: %s\n", __DATE__);
-	gEngfuncs.Con_Printf("- Mod name: %s\n", "Spirit of Half-Life 1.2 for VS2019");
+	gEngfuncs.Con_Printf("- Mod name: %s\n", "Spirit of Half-Life 1.2b - 25th Anniversary");
 	gEngfuncs.Con_Printf("-----------------------------------\n");
 }
 
@@ -405,9 +415,15 @@ void CHud::Init(void)
 	m_iFOV = 0;
 	m_iHUDColor = 0x00FFA000; //255,160,0 -- LRC
 
+#if HL_SDK25
+	CVAR_CREATE("zoom_sensitivity_ratio", "1.2", FCVAR_ARCHIVE);
+	CVAR_CREATE("cl_autowepswitch", "1", FCVAR_USERINFO | FCVAR_ARCHIVE);
+	default_fov = CVAR_CREATE("default_fov", "90", FCVAR_ARCHIVE);
+#else
 	CVAR_CREATE("zoom_sensitivity_ratio", "1.2", 0);
 	CVAR_CREATE("cl_autowepswitch", "1", FCVAR_ARCHIVE | FCVAR_USERINFO);
 	default_fov = CVAR_CREATE("default_fov", "90", 0);
+#endif
 	m_pCvarStealMouse = CVAR_CREATE("hud_capturemouse", "1", FCVAR_ARCHIVE);
 	m_pCvarDraw = CVAR_CREATE("hud_draw", "1", FCVAR_ARCHIVE);
 	cl_lw = gEngfuncs.pfnGetCvarPointer("cl_lw");
@@ -453,6 +469,11 @@ void CHud::Init(void)
 	ServersInit();
 
 	MsgFunc_ResetHUD(0, 0, NULL);
+
+#if HL_SDK25
+	gEngfuncs.pfnClientCmd("richpresence_gamemode\n"); // reset
+	gEngfuncs.pfnClientCmd("richpresence_update\n");
+#endif
 }
 
 // CHud destructor
@@ -507,10 +528,21 @@ void CHud::VidInit(void)
 	m_hsprLogo = 0;
 	m_hsprCursor = 0;
 
+#if HL_SDK25
+	if (ScreenWidth > 2560 && ScreenHeight > 1600)
+		m_iRes = 2560;
+	else if (ScreenWidth >= 1280 && ScreenHeight > 720)
+		m_iRes = 1280;
+	else if (ScreenWidth >= 640)
+		m_iRes = 640;
+	else
+		m_iRes = 320;
+#else
 	if (ScreenWidth < 640)
 		m_iRes = 320;
 	else
 		m_iRes = 640;
+#endif
 
 	// Only load this once
 	if (!m_pSpriteList)
@@ -746,8 +778,11 @@ int CHud::MsgFunc_SetFOV(const char* pszName, int iSize, void* pbuf)
 	else
 	{
 		// set a new sensitivity that is proportional to the change from the FOV default
-		m_flMouseSensitivity = sensitivity->value * ((float)newfov / (float)def_fov) * CVAR_GET_FLOAT(
-			"zoom_sensitivity_ratio");
+#if HL_SDK25
+		m_flMouseSensitivity = IN_GetMouseSensitivity() * ((float)newfov / (float)def_fov) * CVAR_GET_FLOAT("zoom_sensitivity_ratio");
+#else
+		m_flMouseSensitivity = sensitivity->value * ((float)newfov / (float)def_fov) * CVAR_GET_FLOAT("zoom_sensitivity_ratio");
+#endif
 	}
 
 	return 1;

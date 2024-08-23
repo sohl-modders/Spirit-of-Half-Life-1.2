@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // text_message.cpp
 //
@@ -46,6 +52,9 @@ int CHudTextMessage::Init(void)
 // the new value is pushed into dst_buffer
 char* CHudTextMessage::LocaliseTextString(const char* msg, char* dst_buffer, int buffer_size)
 {
+#if HL_SDK25
+	int len = buffer_size;
+#endif
 	char* dst = dst_buffer;
 	for (char* src = (char*)msg; *src != 0 && buffer_size > 0; buffer_size--)
 	{
@@ -85,7 +94,11 @@ char* CHudTextMessage::LocaliseTextString(const char* msg, char* dst_buffer, int
 		}
 	}
 
+#if HL_SDK25
+	dst_buffer[len - 1] = 0; // ensure null termination
+#else
 	dst_buffer[buffer_size - 1] = 0; // ensure null termination
+#endif
 	return dst_buffer;
 }
 
@@ -197,7 +210,11 @@ int CHudTextMessage::MsgFunc_TextMsg(const char* pszName, int iSize, void* pbuf)
 
 	case HUD_PRINTNOTIFY:
 		psz[0] = 1; // mark this message to go into the notify buffer
+#if HL_SDK25
+		safe_sprintf(psz + 1, MSG_BUF_SIZE - 1, msg_text, sstr1, sstr2, sstr3, sstr4);
+#else
 		safe_sprintf(psz + 1, MSG_BUF_SIZE, msg_text, sstr1, sstr2, sstr3, sstr4);
+#endif
 		ConsolePrint(ConvertCRtoNL(psz));
 		break;
 

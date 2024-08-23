@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== items.cpp ========================================================
@@ -253,7 +259,11 @@ class CItemBattery : public CItem
 			else
 				pPlayer->pev->armorvalue += gSkillData.batteryCapacity;
 
+#if HL_SDK25
+			pPlayer->pev->armorvalue = min<float>(pPlayer->pev->armorvalue, MAX_NORMAL_BATTERY);
+#else
 			pPlayer->pev->armorvalue = V_min(pPlayer->pev->armorvalue, MAX_NORMAL_BATTERY);
+#endif
 
 			if (pev->noise)
 				EMIT_SOUND(pPlayer->edict(), CHAN_ITEM, STRING(pev->noise), 1, ATTN_NORM); //LRC

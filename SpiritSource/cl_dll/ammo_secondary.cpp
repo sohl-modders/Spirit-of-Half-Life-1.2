@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // ammo_secondary.cpp
 //
@@ -61,7 +67,11 @@ int CHudAmmoSecondary::Draw(float flTime)
 	// draw secondary ammo icons above normal ammo readout
 	int a, x, y, r, g, b, AmmoWidth;
 	UnpackRGB(r, g, b, gHUD.m_iHUDColor); //LRC
+#if HL_SDK25
+	a = max<int>(MIN_ALPHA, m_fFade);
+#else
 	a = (int)V_max(MIN_ALPHA, m_fFade);
+#endif
 	if (m_fFade > 0)
 		m_fFade -= (gHUD.m_flTimeDelta * 20); // slowly lower alpha to fade out icons
 	ScaleColors(r, g, b, a);

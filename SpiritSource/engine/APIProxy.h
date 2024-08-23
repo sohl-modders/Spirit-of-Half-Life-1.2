@@ -341,7 +341,7 @@ typedef int							(*pfnEngSrc_pfnDrawStringReverse_t )		( int x, int y, const ch
 typedef const char *				(*pfnEngSrc_LocalPlayerInfo_ValueForKey_t )( const char *key );
 typedef int							(*pfnEngSrc_pfnVGUI2DrawCharacter_t )		( int x, int y, int ch, unsigned int font );
 typedef int							(*pfnEngSrc_pfnVGUI2DrawCharacterAdd_t )	( int x, int y, int ch, int r, int g, int b, unsigned int font);
-typedef unsigned int		(*pfnEngSrc_COM_GetApproxWavePlayLength ) ( const char * filename);
+typedef unsigned int				(*pfnEngSrc_COM_GetApproxWavePlayLength ) ( const char * filename);
 typedef void *						(*pfnEngSrc_pfnGetCareerUI_t)();
 typedef void						(*pfnEngSrc_Cvar_Set_t )			( char *cvar, char *value );
 typedef int							(*pfnEngSrc_pfnIsPlayingCareerMatch_t)();
@@ -350,9 +350,12 @@ typedef void						(*pfnEngSrc_pfnProcessTutorMessageDecayBuffer_t)(int *buffer, 
 typedef void						(*pfnEngSrc_pfnConstructTutorMessageDecayBuffer_t)(int *buffer, int bufferLength);
 typedef void						(*pfnEngSrc_pfnResetTutorMessageDecayData_t)();
 typedef void						(*pfnEngSrc_pfnFillRGBABlend_t )			( int x, int y, int width, int height, int r, int g, int b, int a );
-typedef int						(*pfnEngSrc_pfnGetAppID_t)			( void );
-typedef cmdalias_t*				(*pfnEngSrc_pfnGetAliases_t)		( void );
-typedef void					(*pfnEngSrc_pfnVguiWrap2_GetMouseDelta_t) ( int *x, int *y );
+typedef int							(*pfnEngSrc_pfnGetAppID_t)			( void );
+typedef cmdalias_t*					(*pfnEngSrc_pfnGetAliases_t)		( void );
+typedef void						(*pfnEngSrc_pfnVguiWrap2_GetMouseDelta_t) ( int *x, int *y );
+#if HL_SDK25
+typedef int							(*pfnEngSrc_pfnFilteredClientCmd_t) 	(char* szCmdString);
+#endif
 
 // Pointers to the exported engine functions themselves
 typedef struct cl_enginefuncs_s
@@ -491,6 +494,9 @@ typedef struct cl_enginefuncs_s
 	pfnEngSrc_pfnGetAppID_t					pfnGetAppID;
 	pfnEngSrc_pfnGetAliases_t				pfnGetAliasList;
 	pfnEngSrc_pfnVguiWrap2_GetMouseDelta_t pfnVguiWrap2_GetMouseDelta;
+#if HL_SDK25
+	pfnEngSrc_pfnFilteredClientCmd_t		pfnFilteredClientCmd;
+#endif
 } cl_enginefunc_t;
 
 // Function type declarations for engine destination functions
@@ -610,7 +616,9 @@ typedef void	(*pfnEngDst_pfnFillRGBABlend_t )				( int *, int *, int *, int *, i
 typedef void	(*pfnEngDst_pfnGetAppID_t )				( void );
 typedef void	(*pfnEngDst_pfnGetAliases_t )				( void );
 typedef void	(*pfnEngDst_pfnVguiWrap2_GetMouseDelta_t) ( int *x, int *y );
-
+#if HL_SDK25
+typedef void	(*pfnEngDst_pfnFilteredClientCmd_t)	(char**);
+#endif
 
 // Pointers to the engine destination functions
 typedef struct
@@ -737,6 +745,9 @@ typedef struct
 	pfnEngDst_pfnGetAppID_t							pfnGetAppID;
 	pfnEngDst_pfnGetAliases_t				pfnGetAliasList;
 	pfnEngDst_pfnVguiWrap2_GetMouseDelta_t	pfnVguiWrap2_GetMouseDelta;
+#if HL_SDK25
+	pfnEngDst_pfnFilteredClientCmd_t		pfnFilteredClientCmd;
+#endif
 } cl_enginefunc_dst_t;
 
 

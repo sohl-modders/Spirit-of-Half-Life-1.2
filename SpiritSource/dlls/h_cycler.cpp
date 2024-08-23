@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 ===== h_cycler.cpp ========================================================
@@ -45,6 +51,9 @@ public:
 
 	// Don't treat as a live target
 	virtual BOOL IsAlive(void) { return FALSE; }
+#if HL_SDK25
+	virtual BOOL IsAllowedToSpeak() { return TRUE; }
+#endif
 
 	virtual int Save(CSave& save);
 	virtual int Restore(CRestore& restore);

@@ -13,6 +13,11 @@
 *
 ****/
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -47,7 +52,11 @@ void CMP5::Spawn()
 	SET_MODEL(ENT(pev), "models/w_9mmAR.mdl");
 	m_iId = WEAPON_MP5;
 
+#if HL_SDK25
+	m_iDefaultAmmo = gpGlobals->maxClients > 1 ? MP5_MAX_CLIP : MP5_DEFAULT_GIVE;
+#else
 	m_iDefaultAmmo = MP5_DEFAULT_GIVE;
+#endif
 
 	FallInit(); // get ready to fall down.
 }

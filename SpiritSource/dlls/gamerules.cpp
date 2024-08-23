@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //=========================================================
 // GameRules.cpp
 //=========================================================
@@ -34,6 +40,9 @@ extern int gmsgDeathMsg; // client dll messages
 extern int gmsgMOTD;
 
 int g_teamplay = 0;
+#if HL_SDK25
+extern cvar_t sv_busters;
+#endif
 
 //=========================================================
 //=========================================================
@@ -334,7 +343,17 @@ CGameRules* InstallGameRules(void)
 			g_teamplay = 1;
 			return new CHalfLifeTeamplay;
 		}
+
+#if HL_SDK25
+		if (sv_busters.value == 1)
+		{
+			g_teamplay = 0;
+			return new CMultiplayBusters;
+		}
+		else if ((int)gpGlobals->deathmatch == 1)
+#else
 		if ((int)gpGlobals->deathmatch == 1)
+#endif
 		{
 			// vanilla deathmatch
 			g_teamplay = 0;

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #if !defined( OEM_BUILD ) && !defined( HLDEMO_BUILD )
 
 #include "extdll.h"
@@ -145,6 +151,12 @@ void CGauss::Holster(int skiplocal /* = 0 */)
 
 void CGauss::PrimaryAttack()
 {
+#if HL_SDK25
+	// JoshA: Sanitize this so it's not total garbage on level transition
+	// and we end up ear blasting the player!
+	m_pPlayer->m_flStartCharge = min(m_pPlayer->m_flStartCharge, gpGlobals->time);
+#endif
+
 	// don't fire underwater
 	if (m_pPlayer->pev->waterlevel == 3 && m_pPlayer->pev->watertype > CONTENT_FLYFIELD)
 	{
@@ -316,6 +328,12 @@ void CGauss::StartFire(void)
 {
 	float flDamage;
 
+#if HL_SDK25
+	// JoshA: Sanitize this so it's not total garbage on level transition
+		// and we end up ear blasting the player!
+	m_pPlayer->m_flStartCharge = min(m_pPlayer->m_flStartCharge, gpGlobals->time);
+#endif
+
 	UTIL_MakeVectors(m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle);
 	Vector vecAiming = gpGlobals->v_forward;
 	Vector vecSrc = m_pPlayer->GetGunPosition(); // + gpGlobals->v_up * -8 + gpGlobals->v_right * 8;
@@ -375,14 +393,17 @@ void CGauss::Fire(Vector vecOrigSrc, Vector vecDir, float flDamage)
 	Vector vecSrc = vecOrigSrc;
 	Vector vecDest = vecSrc + vecDir * 8192;
 	edict_t* pentIgnore;
-	TraceResult tr, beam_tr;
 	float flMaxFrac = 1.0;
 	int nTotal = 0;
 	int fHasPunched = 0;
 	int fFirstBeam = 1;
 	int nMaxHits = 10;
 
+#if HL_SDK25
+	pentIgnore = m_pPlayer->edict();
+#else
 	pentIgnore = ENT(m_pPlayer->pev);
+#endif
 
 #ifdef CLIENT_DLL
 	if (m_fPrimaryFire == false)
@@ -409,6 +430,7 @@ void CGauss::Fire(Vector vecOrigSrc, Vector vecDir, float flDamage)
 	//	ALERT( at_console, "%f %f\n", tr.flFraction, flMaxFrac );
 
 #ifndef CLIENT_DLL
+	TraceResult tr, beam_tr;
 	while (flDamage > 10 && nMaxHits > 0)
 	{
 		nMaxHits--;
@@ -435,6 +457,15 @@ void CGauss::Fire(Vector vecOrigSrc, Vector vecDir, float flDamage)
 		if (pEntity->pev->takedamage)
 		{
 			ClearMultiDamage();
+
+#if HL_SDK25
+			// if you hurt yourself clear the headshot bit
+			if (m_pPlayer->pev == pEntity->pev)
+			{
+				tr.iHitgroup = 0;
+			}
+#endif
+
 			pEntity->TraceAttack(m_pPlayer->pev, flDamage, vecDir, &tr, DMG_BULLET);
 			ApplyMultiDamage(m_pPlayer->pev, m_pPlayer->pev);
 		}

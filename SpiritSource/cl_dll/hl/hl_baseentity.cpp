@@ -13,6 +13,11 @@
 *
 ****/
 
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 ==========================
 This file contains "stubs" of class member implementations so that we can predict certain
@@ -168,9 +173,12 @@ void ClientPrint(entvars_t* client, int msg_dest, const char* msg_name, const ch
 int CBaseToggle::Restore(class CRestore&) { return 1; }
 int CBaseToggle::Save(class CSave&) { return 1; }
 
-void CBaseToggle::KeyValue(struct KeyValueData_s*)
-{
-}
+void CBaseToggle::KeyValue(struct KeyValueData_s*) {}
+#if HL_SDK25
+void CBaseToggle::PlaySentence(const char* pszSentence, float duration, float volume, float attenuation) { }
+void CBaseToggle::PlayScriptedSentence(const char* pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity* pListener) { }
+void CBaseToggle::SentenceStop(void) { }
+#endif
 
 STATE CBaseToggle::GetState(void) { return STATE_ON; } //LRC
 
@@ -474,18 +482,12 @@ Vector CBaseMonster::ShootAtEnemy(const Vector& shootOrigin) { return g_vecZero;
 BOOL CBaseMonster::FacingIdeal(void) { return FALSE; }
 BOOL CBaseMonster::FCanActiveIdle(void) { return FALSE; }
 
-void CBaseMonster::PlaySentence(const char* pszSentence, float duration, float volume, float attenuation)
-{
-}
-
+#ifndef HL_SDK25
+void CBaseMonster::PlaySentence(const char* pszSentence, float duration, float volume, float attenuation){}
 void CBaseMonster::PlayScriptedSentence(const char* pszSentence, float duration, float volume, float attenuation,
-                                        BOOL bConcurrent, CBaseEntity* pListener)
-{
-}
-
-void CBaseMonster::SentenceStop(void)
-{
-}
+    BOOL bConcurrent, CBaseEntity* pListener){}
+void CBaseMonster::SentenceStop(void){}
+#endif
 
 void CBaseMonster::CorpseFallThink(void)
 {

@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // battery.cpp
 //
@@ -113,11 +119,19 @@ int CHudBattery::Draw(float flTime)
 	int iOffset = (m_prc1->bottom - m_prc1->top) / 6;
 
 	y = ScreenHeight - gHUD.m_iFontHeight - gHUD.m_iFontHeight / 2;
+#if HL_SDK25
+	int width = (m_prc1->right - m_prc1->left);
+
+	// this used to just be ScreenWidth/5 but that caused real issues at higher resolutions. Instead, base it on the width of this sprite.
+	x = 3 * width;
+#else
 	x = ScreenWidth / 5;
+#endif
 
 	// make sure we have the right sprite handles
 	if (!m_hSprite1)
 		m_hSprite1 = gHUD.GetSprite(gHUD.GetSpriteIndex("suit_empty"));
+
 	if (!m_hSprite2)
 		m_hSprite2 = gHUD.GetSprite(gHUD.GetSpriteIndex("suit_full"));
 
@@ -130,7 +144,12 @@ int CHudBattery::Draw(float flTime)
 		SPR_DrawAdditive(0, x, y - iOffset + (rc.top - m_prc2->top), &rc);
 	}
 
+#if HL_SDK25
+	x += width;
+	y += (int)(gHUD.m_iFontHeight * 0.2f);
+#else
 	x += (m_prc1->right - m_prc1->left);
+#endif
 	x = gHUD.DrawHudNumber(x, y, DHN_3DIGITS | DHN_DRAWZERO, m_iBat, r, g, b);
 
 	return 1;

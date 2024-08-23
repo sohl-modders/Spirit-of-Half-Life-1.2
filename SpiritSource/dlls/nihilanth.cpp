@@ -12,6 +12,12 @@
 *   use or distribution of this code by or to any unlicensed person is illegal.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 #if !defined( OEM_BUILD ) && !defined( HLDEMO_BUILD )
 
 #include "extdll.h"
@@ -489,7 +495,11 @@ void CNihilanth::DyingThink(void)
 	{
 		if (m_pBall->pev->renderamt > 0)
 		{
+#if HL_SDK25
+			m_pBall->pev->renderamt = max<float>(0, m_pBall->pev->renderamt - 2);
+#else
 			m_pBall->pev->renderamt = V_max(0, m_pBall->pev->renderamt - 2);
+#endif
 		}
 		else
 		{
@@ -905,6 +915,7 @@ void CNihilanth::HuntThink(void)
 		{
 			if (m_flLastSeen < gpGlobals->time - 5)
 				m_flPrevSeen = gpGlobals->time;
+
 			m_flLastSeen = gpGlobals->time;
 			m_posTarget = m_hEnemy->pev->origin;
 			m_vecTarget = (m_posTarget - pev->origin).Normalize();
@@ -913,7 +924,11 @@ void CNihilanth::HuntThink(void)
 		}
 		else
 		{
+#if HL_SDK25
+			m_flAdj = min(m_flAdj + 10.0f, 1000.0f);
+#else
 			m_flAdj = V_min(m_flAdj + 10, 1000);
+#endif
 		}
 	}
 

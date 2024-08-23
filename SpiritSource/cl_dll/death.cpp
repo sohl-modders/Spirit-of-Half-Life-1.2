@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
 // death notice
 //
@@ -64,8 +70,6 @@ float* GetClientColor(int clientIndex)
 
 	default: return g_ColorGrey;
 	}
-
-	return NULL;
 }
 
 int CHudDeathNotice::Init(void)
@@ -74,7 +78,11 @@ int CHudDeathNotice::Init(void)
 
 	HOOK_MESSAGE(DeathMsg);
 
+#if HL_SDK25
+	CVAR_CREATE("hud_deathnotice_time", "6", FCVAR_ARCHIVE);
+#else
 	CVAR_CREATE("hud_deathnotice_time", "6", 0);
+#endif
 
 	return 1;
 }
@@ -95,7 +103,16 @@ int CHudDeathNotice::VidInit(void)
 
 int CHudDeathNotice::Draw(float flTime)
 {
+#if HL_SDK25
+	int x, y, r, g, b, texty;
+
+	int gap = 20;
+
+	wrect_t& sprite = gHUD.GetSpriteRect(m_HUD_d_skull);
+	gap = sprite.bottom - sprite.top;
+#else
 	int x, y, r, g, b;
+#endif
 
 	for (int i = 0; i < MAX_DEATHNOTICES; i++)
 	{
@@ -117,13 +134,21 @@ int CHudDeathNotice::Draw(float flTime)
 		// Only draw if the viewport will let me
 		if (gViewPort && gViewPort->AllowedToPrintText())
 		{
+#if HL_SDK25
+			y = DEATHNOTICE_TOP + 2 + (gap * i);
+			texty = y + 4;
+#else
 			// Draw the death notice
 			y = DEATHNOTICE_TOP + 2 + (20 * i); //!!!
+#endif
 
 			int id = (rgDeathNoticeList[i].iId == -1) ? m_HUD_d_skull : rgDeathNoticeList[i].iId;
+#if HL_SDK25
+			x = ScreenWidth - ConsoleStringLen(rgDeathNoticeList[i].szVictim) - (gHUD.GetSpriteRect(id).right - gHUD.GetSpriteRect(id).left) - 4;
+#else
 			x = ScreenWidth - ConsoleStringLen(rgDeathNoticeList[i].szVictim) - (gHUD.GetSpriteRect(id).right - gHUD.
 				GetSpriteRect(id).left);
-
+#endif
 			if (!rgDeathNoticeList[i].iSuicide)
 			{
 				x -= (5 + ConsoleStringLen(rgDeathNoticeList[i].szKiller));
@@ -133,7 +158,11 @@ int CHudDeathNotice::Draw(float flTime)
 					gEngfuncs.pfnDrawSetTextColor(rgDeathNoticeList[i].KillerColor[0],
 					                              rgDeathNoticeList[i].KillerColor[1],
 					                              rgDeathNoticeList[i].KillerColor[2]);
+#if HL_SDK25
+				x = 5 + DrawConsoleString(x, texty, rgDeathNoticeList[i].szKiller);
+#else
 				x = 5 + DrawConsoleString(x, y, rgDeathNoticeList[i].szKiller);
+#endif
 			}
 
 			r = 255;
@@ -159,7 +188,11 @@ int CHudDeathNotice::Draw(float flTime)
 					gEngfuncs.pfnDrawSetTextColor(rgDeathNoticeList[i].VictimColor[0],
 					                              rgDeathNoticeList[i].VictimColor[1],
 					                              rgDeathNoticeList[i].VictimColor[2]);
+#if HL_SDK25
+				x = DrawConsoleString(x, texty, rgDeathNoticeList[i].szVictim);
+#else
 				x = DrawConsoleString(x, y, rgDeathNoticeList[i].szVictim);
+#endif
 			}
 		}
 	}

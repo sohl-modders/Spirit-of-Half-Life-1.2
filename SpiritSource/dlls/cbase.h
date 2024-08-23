@@ -12,6 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 /*
 
 Class Hierachy
@@ -73,6 +79,11 @@ CBaseEntity
 #endif
 
 // C functions for external declarations that call the appropriate C++ methods
+#if HL_SDK25
+#if defined EXPORT
+#undef EXPORT
+#endif
+#endif
 
 #define EXPORT DLLEXPORT
 
@@ -138,9 +149,15 @@ typedef void (CBaseEntity::*USEPTR)(CBaseEntity* pActivator, CBaseEntity* pCalle
 #define CLASS_FACTION_A			14 //LRC - very simple new classes, for use with Behaves As
 #define CLASS_FACTION_B			15
 #define CLASS_FACTION_C			16
+#if HL_SDK25
+#define CLASS_VEHICLE			17
+#endif
 #define	CLASS_BARNACLE			99 // special because no one pays attention to it, and it eats a wide cross-section of creatures.
 
 class CBaseEntity;
+#if HL_SDK25
+class CBaseToggle;
+#endif
 class CBaseMonster;
 class CBasePlayerItem;
 class CSquadMonster;
@@ -323,6 +340,9 @@ public:
 	virtual void TraceBleed(float flDamage, Vector vecDir, TraceResult* ptr, int bitsDamageType);
 	//LRC- superceded by GetState ( pActivator ).
 	//	virtual BOOL    IsTriggered( CBaseEntity *pActivator ) {return TRUE;}
+#if HL_SDK25
+	virtual CBaseToggle* MyTogglePointer(void) { return NULL; }
+#endif
 	virtual CBaseMonster* MyMonsterPointer(void) { return NULL; }
 	virtual CSquadMonster* MySquadMonsterPointer(void) { return NULL; }
 	virtual int GetToggleState(void) { return TS_AT_TOP; }
@@ -753,6 +773,16 @@ public:
 	void EXPORT AngularMoveDoneNow(void);
 	BOOL IsLockedByMaster(void);
 
+#if HL_SDK25
+	virtual CBaseToggle* MyTogglePointer(void) { return this; }
+
+	// monsters use this, but so could buttons for instance
+	virtual void PlaySentence(const char* pszSentence, float duration, float volume, float attenuation);
+	virtual void PlayScriptedSentence(const char* pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity* pListener);
+	virtual void SentenceStop(void);
+	virtual BOOL IsAllowedToSpeak() { return FALSE; }
+#endif
+
 	static float AxisValue(int flags, const Vector& angles);
 	static void AxisDir(entvars_t* pev);
 	static float AxisDelta(int flags, const Vector& angle1, const Vector& angle2);
@@ -913,6 +943,10 @@ public:
 
 	static TYPEDESCRIPTION m_SaveData[];
 	virtual int ObjectCaps(void);
+
+#if HL_SDK25
+	virtual BOOL IsAllowedToSpeak() { return TRUE; }
+#endif
 
 	BOOL m_fStayPushed; // button stays pushed in until touched again?
 	BOOL m_fRotating; // a rotating button?  default is a sliding button.

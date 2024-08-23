@@ -342,7 +342,6 @@ void CBaseMonster::FadeMonster(void)
 //=========================================================
 void CBaseMonster::GibMonster(void)
 {
-	TraceResult tr;
 	BOOL gibbed = FALSE;
 	int iszCustomGibs;
 
@@ -803,7 +802,6 @@ void CGib::BounceGibTouch(CBaseEntity* pOther)
 //
 void CGib::StickyGibTouch(CBaseEntity* pOther)
 {
-	Vector vecSpot;
 	TraceResult tr;
 
 	SetThink(&CGib::SUB_Remove);

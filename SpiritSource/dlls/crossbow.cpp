@@ -398,8 +398,6 @@ void CCrossbow::FireSniperBolt()
 
 void CCrossbow::FireBolt()
 {
-	TraceResult tr;
-
 	if (m_iClip == 0)
 	{
 		PlayEmptySound();

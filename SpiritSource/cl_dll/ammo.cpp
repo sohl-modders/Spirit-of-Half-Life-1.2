@@ -12,10 +12,14 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
+/***
+ *	Changelog:
+ *	HL25 SDK Update (Half-Life's 25th-anniversary update) - [17.11.2023]
+ *****/
+
 //
-// Ammo.cpp
-//
-// implementation of CHudAmmo class
+// Ammo.cpp implementation of CHudAmmo class
 //
 
 #include "hud.h"
@@ -74,10 +78,21 @@ void WeaponsResource::LoadWeaponSprites(WEAPON* pWeapon)
 {
 	int i, iRes;
 
+#if HL_SDK25
+	if (ScreenWidth > 2560 && ScreenHeight > 1600)
+		iRes = 2560;
+	else if (ScreenWidth >= 1280 && ScreenHeight > 720)
+		iRes = 1280;
+	else if (ScreenWidth >= 640)
+		iRes = 640;
+	else
+		iRes = 320;
+#else
 	if (ScreenWidth < 640)
 		iRes = 320;
 	else
 		iRes = 640;
+#endif
 
 	char sz[256];
 
@@ -326,6 +341,19 @@ int CHudAmmo::VidInit(void)
 	// If we've already loaded weapons, let's get new sprites
 	gWR.LoadAllWeaponSprites();
 
+#if HL_SDK25
+	int nScale = 1;
+
+	if (ScreenWidth > 2560 && ScreenHeight > 1600)
+		nScale = 4;
+	else if (ScreenWidth >= 1280 && ScreenHeight > 720)
+		nScale = 3;
+	else if (ScreenWidth >= 640)
+		nScale = 2;
+
+	giABWidth = 10 * nScale;
+	giABHeight = 2 * nScale;
+#else
 	if (ScreenWidth >= 640)
 	{
 		giABWidth = 20;
@@ -336,6 +364,7 @@ int CHudAmmo::VidInit(void)
 		giABWidth = 10;
 		giABHeight = 2;
 	}
+#endif
 
 	return 1;
 }
@@ -661,7 +690,12 @@ int CHudAmmo::MsgFunc_WeaponList(const char* pszName, int iSize, void* pbuf)
 
 	WEAPON Weapon;
 
+#if HL_SDK25
+	strncpy(Weapon.szName, READ_STRING(), MAX_WEAPON_NAME);
+	Weapon.szName[sizeof(Weapon.szName) - 1] = '\0';
+#else
 	strcpy(Weapon.szName, READ_STRING());
+#endif
 	Weapon.iAmmoType = (int)READ_CHAR();
 
 	Weapon.iMax1 = READ_BYTE();
@@ -678,6 +712,29 @@ int CHudAmmo::MsgFunc_WeaponList(const char* pszName, int iSize, void* pbuf)
 	Weapon.iId = READ_CHAR();
 	Weapon.iFlags = READ_BYTE();
 	Weapon.iClip = 0;
+
+#if HL_SDK25
+	if (Weapon.iId < 0 || Weapon.iId >= MAX_WEAPONS)
+		return 0;
+
+	if (Weapon.iSlot < 0 || Weapon.iSlot >= MAX_WEAPON_SLOTS + 1)
+		return 0;
+
+	if (Weapon.iSlotPos < 0 || Weapon.iSlotPos >= MAX_WEAPON_POSITIONS + 1)
+		return 0;
+
+	if (Weapon.iAmmoType < -1 || Weapon.iAmmoType >= MAX_AMMO_TYPES)
+		return 0;
+
+	if (Weapon.iAmmo2Type < -1 || Weapon.iAmmo2Type >= MAX_AMMO_TYPES)
+		return 0;
+
+	if (Weapon.iAmmoType >= 0 && Weapon.iMax1 == 0)
+		return 0;
+
+	if (Weapon.iAmmo2Type >= 0 && Weapon.iMax2 == 0)
+		return 0;
+#endif
 
 	gWR.AddWeapon(&Weapon);
 
@@ -880,7 +937,11 @@ int CHudAmmo::Draw(float flTime)
 
 	AmmoWidth = gHUD.GetSpriteRect(gHUD.m_HUD_number_0).right - gHUD.GetSpriteRect(gHUD.m_HUD_number_0).left;
 
+#if HL_SDK25
+	a = max<int>(MIN_ALPHA, m_fFade);
+#else
 	a = (int)V_max(MIN_ALPHA, m_fFade);
+#endif
 
 	if (m_fFade > 0)
 		m_fFade -= (gHUD.m_flTimeDelta * 20);
@@ -889,8 +950,10 @@ int CHudAmmo::Draw(float flTime)
 
 	ScaleColors(r, g, b, a);
 
-	// Does this weapon have a clip?
 	y = ScreenHeight - gHUD.m_iFontHeight - gHUD.m_iFontHeight / 2;
+#if HL_SDK25
+	y += (int)(gHUD.m_iFontHeight * 0.2f);
+#endif
 
 	// Does weapon have any ammo at all?
 	if (m_pWeapon->iAmmoType > 0)
@@ -1202,7 +1265,11 @@ client_sprite_t* GetSpriteList(client_sprite_t* pList, const char* psz, int iRes
 
 	while (i--)
 	{
+#if HL_SDK25
+		if ((p->iRes == iRes) && (!strcmp(psz, p->szName)))
+#else
 		if ((!strcmp(psz, p->szName)) && (p->iRes == iRes))
+#endif
 			return p;
 		p++;
 	}

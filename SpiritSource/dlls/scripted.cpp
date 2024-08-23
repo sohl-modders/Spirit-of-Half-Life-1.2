@@ -902,7 +902,6 @@ BOOL CBaseMonster::CineCleanup()
 	return TRUE;
 }
 
-
 class CScriptedSentence : public CBaseToggle
 {
 public:
@@ -921,10 +920,15 @@ public:
 
 	static TYPEDESCRIPTION m_SaveData[];
 
+#if HL_SDK25
+	CBaseToggle* FindEntity(CBaseEntity* pActivator);
+	BOOL AcceptableSpeaker(CBaseToggle* pTarget);
+	BOOL StartSentence(CBaseToggle* pTarget);
+#else
 	CBaseMonster* FindEntity(CBaseEntity* pActivator);
 	BOOL AcceptableSpeaker(CBaseMonster* pMonster);
 	BOOL StartSentence(CBaseMonster* pTarget);
-
+#endif
 
 private:
 	int m_iszSentence; // string index for idle animation
@@ -957,7 +961,6 @@ TYPEDESCRIPTION CScriptedSentence::m_SaveData[] =
 	DEFINE_FIELD(CScriptedSentence, m_playing, FIELD_BOOLEAN),
 	DEFINE_FIELD(CScriptedSentence, m_iszListener, FIELD_STRING),
 };
-
 
 IMPLEMENT_SAVERESTORE(CScriptedSentence, CBaseToggle);
 
@@ -1073,8 +1076,10 @@ void CScriptedSentence::FindThink(void)
 				pPlayer->SetSuitUpdate((char*)STRING(m_iszSentence),FALSE, 0);
 			else
 				pPlayer->SetSuitUpdate((char*)STRING(m_iszSentence),TRUE, 0);
+
 			if (pev->spawnflags & SF_SENTENCE_ONCE)
 				UTIL_Remove(this);
+
 			SetThink(&CScriptedSentence :: DurationThink);
 			SetNextThink(m_flDuration);
 			m_active = FALSE;
@@ -1084,13 +1089,24 @@ void CScriptedSentence::FindThink(void)
 		return;
 	}
 
+#if HL_SDK25
+	CBaseToggle* pEnt = FindEntity(m_hActivator);
+	if (pEnt)
+#else
 	CBaseMonster* pMonster = FindEntity(m_hActivator);
 	if (pMonster)
+#endif
 	{
 		m_playing = TRUE;
+#if HL_SDK25
+		StartSentence(pEnt);
+#else
 		StartSentence(pMonster);
+#endif
+
 		if (pev->spawnflags & SF_SENTENCE_ONCE)
 			UTIL_Remove(this);
+
 		SetThink(&CScriptedSentence :: DurationThink);
 		SetNextThink(m_flDuration);
 		m_active = FALSE;
@@ -1119,9 +1135,20 @@ void CScriptedSentence::DelayThink(void)
 	SetThink(&CScriptedSentence::FindThink);
 }
 
-
+#if HL_SDK25
+BOOL CScriptedSentence::AcceptableSpeaker(CBaseToggle* pTarget)
+#else
 BOOL CScriptedSentence::AcceptableSpeaker(CBaseMonster* pMonster)
+#endif
 {
+#if HL_SDK25
+	CBaseMonster* pMonster = NULL;
+	if (pTarget)
+	{
+		pMonster = pTarget->MyMonsterPointer();
+	}
+#endif
+
 	if (pMonster)
 	{
 		if (pev->spawnflags & SF_SENTENCE_FOLLOWERS)
@@ -1137,20 +1164,41 @@ BOOL CScriptedSentence::AcceptableSpeaker(CBaseMonster* pMonster)
 		if (pMonster->CanPlaySentence(override))
 			return TRUE;
 	}
+#if HL_SDK25
+	else
+	{
+		// targeting something other than a monster, sure it can speak
+		if (pTarget && pTarget->IsAllowedToSpeak())
+			return TRUE;
+	}
+#endif
 	return FALSE;
 }
 
-
+#if HL_SDK25
+CBaseToggle* CScriptedSentence::FindEntity(CBaseEntity* pActivator)
+#else
 CBaseMonster* CScriptedSentence::FindEntity(CBaseEntity* pActivator)
+#endif
 {
-	CBaseEntity* pTarget;
-	CBaseMonster* pMonster;
-
-	pTarget = UTIL_FindEntityByTargetname(NULL, STRING(m_iszEntity), pActivator);
-	pMonster = NULL;
+	CBaseEntity* pTarget = UTIL_FindEntityByTargetname(NULL, STRING(m_iszEntity), pActivator);
+#if HL_SDK25
+	CBaseToggle* pSpeakingEnt = NULL;
+#else
+	CBaseMonster* pMonster = NULL;
+#endif
 
 	while (pTarget)
 	{
+#if HL_SDK25
+		pSpeakingEnt = pTarget->MyTogglePointer();
+		if (pSpeakingEnt != NULL)
+		{
+			if (AcceptableSpeaker(pSpeakingEnt))
+				return pSpeakingEnt;
+			//			ALERT( at_console, "%s (%s), not acceptable\n", STRING(pMonster->pev->classname), STRING(pMonster->pev->targetname) );
+		}
+#else
 		pMonster = pTarget->MyMonsterPointer();
 		if (pMonster != NULL)
 		{
@@ -1158,6 +1206,7 @@ CBaseMonster* CScriptedSentence::FindEntity(CBaseEntity* pActivator)
 				return pMonster;
 			//			ALERT( at_console, "%s (%s), not acceptable\n", STRING(pMonster->pev->classname), STRING(pMonster->pev->targetname) );
 		}
+#endif
 		pTarget = UTIL_FindEntityByTargetname(pTarget, STRING(m_iszEntity), pActivator);
 	}
 
@@ -1166,20 +1215,32 @@ CBaseMonster* CScriptedSentence::FindEntity(CBaseEntity* pActivator)
 	{
 		if (FClassnameIs(pTarget->pev, STRING(m_iszEntity)))
 		{
+#if HL_SDK25
+			if (FBitSet(pTarget->pev->flags, FL_MONSTER))
+			{
+				pSpeakingEnt = pTarget->MyTogglePointer();
+				if (AcceptableSpeaker(pSpeakingEnt))
+					return pSpeakingEnt;
+		}
+#else
 			if (FBitSet(pTarget->pev->flags, FL_MONSTER))
 			{
 				pMonster = pTarget->MyMonsterPointer();
 				if (AcceptableSpeaker(pMonster))
 					return pMonster;
 			}
+#endif
 		}
 	}
 
 	return NULL;
 }
 
-
+#if HL_SDK25
+BOOL CScriptedSentence::StartSentence(CBaseToggle* pTarget)
+#else
 BOOL CScriptedSentence::StartSentence(CBaseMonster* pTarget)
+#endif
 {
 	if (!pTarget)
 	{

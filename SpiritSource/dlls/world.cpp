@@ -231,7 +231,11 @@ static void InitBodyQue(void)
 //
 void CopyToBodyQue(entvars_t* pev)
 {
+#if HL_SDK25
+	if (pev->effects & EF_NODRAW || pev->modelindex == 0)
+#else
 	if (pev->effects & EF_NODRAW)
+#endif
 		return;
 
 	entvars_t* pevHead = VARS(g_pBodyQueueHead);
@@ -469,7 +473,9 @@ LINK_ENTITY_TO_CLASS(worldspawn, CWorld);
 //#define SF_WORLD_STARTSUIT	0x0008		// LRC- Start this level with an HEV suit!
 
 extern DLL_GLOBAL BOOL g_fGameOver;
+#ifndef HL_SDK25
 float g_flWeaponCheat;
+#endif
 
 BOOL g_startSuit; //LRC
 
@@ -477,7 +483,9 @@ void CWorld::Spawn(void)
 {
 	g_fGameOver = FALSE;
 	Precache();
+#ifndef HL_SDK25
 	g_flWeaponCheat = CVAR_GET_FLOAT("sv_cheats"); // Is the impulse 101 command allowed?
+#endif
 }
 
 void CWorld::Precache(void)
